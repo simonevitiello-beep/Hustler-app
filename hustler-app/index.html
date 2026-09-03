@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0A0A0A">
+<title>Hustler Fitness Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080807; --card:#111009; --card2:#181610; --border:#2A2517;
+    --text:#E8E4D8; --muted:#8A8275;
+    --gold:#8C7226; --gold-light:#B69847; --gold-dim:#4A3C14;
+    --red:#A32D2D; --red-light:#E24B4A; --red-dim:#4A1B0C;
+    --green:#3B6D11; --green-light:#639922;
+    --amber:#BA7517; --amber-light:#EF9F27;
+    --blue:#185FA5;
+    --font-display:'Oswald', 'Arial Narrow', sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior-y:none;}
+  body{padding-bottom:74px; min-height:100vh;}
+  header.top{position:sticky;top:0;z-index:10;padding:18px 16px 16px;
+    border-bottom:1px solid var(--gold-dim);
+    background:
+      radial-gradient(circle at 12% 15%, rgba(182,152,71,0.08), transparent 38%),
+      radial-gradient(circle at 88% 25%, rgba(140,114,38,0.07), transparent 35%),
+      radial-gradient(circle at 30% 85%, rgba(182,152,71,0.06), transparent 40%),
+      radial-gradient(circle at 75% 80%, rgba(140,114,38,0.06), transparent 42%),
+      repeating-linear-gradient(122deg, rgba(182,152,71,0.05) 0px, rgba(182,152,71,0.05) 1px, transparent 1px, transparent 9px),
+      repeating-linear-gradient(64deg, rgba(140,114,38,0.04) 0px, rgba(140,114,38,0.04) 1px, transparent 1px, transparent 13px),
+      repeating-linear-gradient(20deg, rgba(182,152,71,0.035) 0px, rgba(182,152,71,0.035) 1px, transparent 1px, transparent 21px),
+      repeating-linear-gradient(160deg, rgba(74,60,20,0.5) 0px, rgba(74,60,20,0.5) 1px, transparent 1px, transparent 31px),
+      linear-gradient(150deg, #060605 0%, #100D08 45%, #070706 70%, #0D0B07 100%);}
+  header.top h1{font-family:var(--font-display);font-size:22px;margin:0 0 3px;font-weight:700;
+    letter-spacing:0.5px;text-transform:uppercase;color:var(--gold-light);}
+  header.top .tagline{font-size:11px;color:var(--gold-dim);letter-spacing:0.3px;margin-bottom:6px;}
+  header.top .sub{font-size:12.5px;color:var(--muted);}
+  main{padding:14px 14px 24px;max-width:560px;margin:0 auto;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:14px;margin-bottom:12px;}
+  .card h2{font-family:var(--font-display);font-size:15px;margin:0 0 10px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:0.6px;font-weight:500;}
+  .row{display:flex;gap:8px;align-items:center;}
+  .row.between{justify-content:space-between;}
+  .row.wrap{flex-wrap:wrap;}
+  .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;}
+  .pill.ok{background:rgba(22,163,74,.18);color:#4ADE80;}
+  .pill.warn{background:rgba(217,119,6,.18);color:#FBBF24;}
+  .pill.bad{background:rgba(220,38,38,.18);color:#F87171;}
+  .pill.muted{background:rgba(139,147,167,.15);color:var(--muted);}
+  .bar-bg{background:var(--card2);border-radius:8px;height:10px;overflow:hidden;flex:1;}
+  .bar-fill{height:100%;border-radius:8px;transition:width .3s;}
+  .macro-line{margin-bottom:9px;}
+  .macro-line .lbl{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;}
+  .macro-line .lbl b{color:var(--text);font-weight:700;}
+  .macro-line .lbl span{color:var(--muted);}
+  .banner{border-radius:12px;padding:11px 12px;margin-bottom:12px;font-size:13px;line-height:1.4;
+    border:1px solid;}
+  .banner.bad{background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.35);color:#FCA5A5;}
+  .banner.warn{background:rgba(217,119,6,.1);border-color:rgba(217,119,6,.35);color:#FCD34D;}
+  .banner.ok{background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.35);color:#86EFAC;}
+  h3.section{font-family:var(--font-display);font-size:14px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.6px;margin:18px 2px 8px;font-weight:500;}
+  .btn{appearance:none;border:none;border-radius:10px;padding:11px 14px;font-size:14.5px;
+    font-weight:700;cursor:pointer;background:var(--card2);color:var(--text);
+    border:1px solid var(--border);}
+  .btn:active{transform:scale(.97);}
+  .btn.primary,.btn.small{font-family:var(--font-display);letter-spacing:0.4px;}
+  .btn.primary{text-transform:uppercase;}
+  .btn.primary{background:var(--gold-light);border-color:var(--gold-light);color:#0A0A0A;}
+  .btn.ghost{background:transparent;}
+  .btn.small{padding:7px 10px;font-size:12.5px;}
+  .btn.block{width:100%;}
+  input,select,textarea{background:var(--card2);border:1px solid var(--border);color:var(--text);
+    border-radius:9px;padding:9px 10px;font-size:14.5px;width:100%;font-family:inherit;}
+  label.f{display:block;font-size:11.5px;color:var(--muted);margin:0 0 4px;font-weight:600;}
+  .field{margin-bottom:10px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+  nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--card);
+    border-top:1px solid var(--border);display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    z-index:20;}
+  nav.tabs button{flex:1;background:none;border:none;color:var(--muted);font-size:10.5px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;font-weight:600;}
+  nav.tabs button .ic{font-size:19px;}
+  nav.tabs button.active{color:#fff;}
+  nav.tabs button.active .ic{color:var(--gold-light);}
+  .fissoitem{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:9px 0;border-bottom:1px solid var(--border);}
+  .fissoitem:last-child{border-bottom:none;}
+  .fissoitem-name{font-size:13.5px;font-weight:600;}
+  .fissoitem-macro{font-size:11px;color:var(--muted);}
+  .fissoitem-controls{display:flex;align-items:center;gap:6px;flex:0 0 auto;}
+  .fissoitem-controls input{width:56px;text-align:center;padding:8px 4px;}
+  .meal-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;
+    border-bottom:1px solid var(--border);}
+  .meal-item:last-child{border-bottom:none;}
+  .meal-item .nm{font-size:13.5px;font-weight:600;}
+  .meal-item .mc{font-size:11.5px;color:var(--muted);}
+  .meal-item .del{color:var(--muted);background:none;border:none;font-size:18px;padding:2px 6px;}
+  .slot-title{font-size:12px;font-weight:700;color:var(--muted);margin:14px 0 4px;
+    text-transform:uppercase;letter-spacing:.4px;}
+  .foodlib-item{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:10px;background:var(--card2);border-radius:10px;margin-bottom:6px;border:1px solid var(--border);}
+  .foodlib-item .nm{font-size:13px;font-weight:600;}
+  .foodlib-item .mc{font-size:11px;color:var(--muted);}
+  .foodlib-item button{background:var(--gold-light);color:#0A0A0A;border:none;border-radius:8px;
+    padding:7px 12px;font-size:12px;font-weight:700;}
+  .tag{display:inline-block;background:var(--card2);border:1px solid var(--border);
+    border-radius:8px;padding:3px 8px;font-size:11px;color:var(--muted);margin-right:5px;}
+  .exercise{background:var(--card2);border:1px solid var(--border);border-radius:12px;
+    padding:10px;margin-bottom:8px;}
+  .exercise .exname{font-size:13.5px;font-weight:700;margin-bottom:2px;}
+  .exercise .target{font-size:11.5px;color:var(--amber-light);font-weight:700;margin-bottom:4px;}
+  .exercise .prev{font-size:12.5px;margin-bottom:8px;}
+  .exercise .prev .prevlabel{color:var(--muted);font-weight:600;}
+  .exercise .prev .prevval{color:#fff;font-weight:800;}
+  .exercise .inputs{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .setrows{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
+  .setrow{display:flex;align-items:center;gap:8px;}
+  .setrow .setlabel{width:56px;flex:0 0 auto;font-size:12px;color:var(--muted);font-weight:700;}
+  .setrow input{flex:1;min-width:0;padding:8px 4px;text-align:center;}
+  .setrow .x{color:var(--muted);font-size:12px;flex:0 0 auto;}
+  .exercise .alt{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);}
+  .daysel{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px;}
+  .daysel button{flex:0 0 auto;background:var(--card2);border:1px solid var(--border);color:var(--muted);
+    border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;white-space:nowrap;}
+  .daysel button.active{background:var(--gold-light);border-color:var(--gold-light);color:#0A0A0A;}
+  svg.chart{width:100%;height:auto;display:block;}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:20px 0;}
+  .photogrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+  .photogrid img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;border:1px solid var(--border);}
+  .settingsgroup{margin-bottom:18px;}
+  .weekday-map{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px;}
+  .weekday-map div{text-align:center;}
+  .weekday-map label.f{text-align:center;}
+  a.filebtn{display:block;text-align:center;}
+  .stat{background:var(--card2);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border);}
+  .stat .n{font-size:20px;font-weight:800;}
+  .stat .l{font-size:10.5px;color:var(--muted);margin-top:2px;}
+  table.progtable{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;}
+  table.progtable th{text-align:left;color:var(--muted);font-weight:700;padding:6px 4px;
+    border-bottom:1px solid var(--border);font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;}
+  table.progtable td{padding:6px 4px;border-bottom:1px solid var(--border);}
+  table.progtable tr:last-child td{border-bottom:none;}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1F2937;
+    border:1px solid var(--border);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;
+    z-index:50;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1><span aria-hidden="true">🏆</span> <span id="headerTitle">Hustler Fitness</span></h1>
+  <div class="tagline">Performance · Composizione corporea · Vendita</div>
+  <div class="sub" id="headerSub">—</div>
+</header>
+<main id="app"></main>
+<nav class="tabs">
+  <button data-tab="oggi" class="active"><span class="ic">●</span>Oggi</button>
+  <button data-tab="pasti"><span class="ic">🍽</span>Pasti</button>
+  <button data-tab="allenamento"><span class="ic">🏋</span>Palestra</button>
+  <button data-tab="progressi"><span class="ic">📈</span>Progressi</button>
+  <button data-tab="impostazioni"><span class="ic">⚙</span>Impostazioni</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================= DATA LAYER ============================= */
+const STORE_KEY = "hustlerDB_v1";
+const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
+const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+const SLOTS = [
+  {k:"colazione", l:"Colazione"},
+  {k:"spuntino-am", l:"Spuntino mattina"},
+  {k:"pranzo", l:"Pranzo"},
+  {k:"spuntino-pm", l:"Spuntino pomeriggio"},
+  {k:"cena", l:"Cena"},
+  {k:"spuntino-sera", l:"Spuntino sera"},
+];
+
+const DEFAULT_EXDB = {
+  1: {label:"Giorno 1 — Petto A", ex:[
+    {k:"panca-piana", l:"Panca piana", sets:4, repMin:6, repMax:8},
+    {k:"panca-inclinata-man", l:"Panca inclinata manubri", sets:3, repMin:8, repMax:10},
+    {k:"chest-fly", l:"Chest fly ai cavi", sets:3, repMin:12, repMax:15},
+    {k:"dip-petto", l:"Dip petto", sets:3, repMin:8, repMax:12},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+  ]},
+  2: {label:"Giorno 2 — Schiena A", ex:[
+    {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10},
+    {k:"rematore-bil", l:"Rematore bilanciere", sets:4, repMin:8, repMax:10},
+    {k:"cable-row", l:"Cable row presa stretta", sets:3, repMin:10, repMax:12},
+    {k:"face-pull", l:"Face pull", sets:3, repMin:15, repMax:15},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+  ]},
+  3: {label:"Giorno 3 — Gambe A (Quadricipiti)", ex:[
+    {k:"squat", l:"Squat", sets:4, repMin:8, repMax:10},
+    {k:"leg-press", l:"Leg press", sets:3, repMin:10, repMax:12},
+    {k:"leg-extension", l:"Leg extension", sets:3, repMin:12, repMax:15},
+    {k:"affondi", l:"Affondi manubri (a gamba)", sets:3, repMin:10, repMax:10},
+    {k:"calf-raise", l:"Calf raise in piedi", sets:3, repMin:15, repMax:20},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+  ]},
+  4: {label:"Giorno 4 — Petto B + Schiena B", ex:[
+    {k:"panca-inclinata-bil", l:"Panca inclinata bilanciere", sets:3, repMin:8, repMax:10},
+    {k:"croci-cavi", l:"Croci ai cavi", sets:2, repMin:12, repMax:15},
+    {k:"lat-stretta", l:"Lat machine presa stretta", sets:3, repMin:10, repMax:12},
+    {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15},
+    {k:"rematore-man-1b", l:"Rematore manubrio a un braccio", sets:2, repMin:12, repMax:15},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+  ]},
+  5: {label:"Giorno 5 — Gambe B + Spalle/Braccia", ex:[
+    {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10},
+    {k:"leg-curl", l:"Leg curl", sets:4, repMin:10, repMax:12},
+    {k:"calf-raise-seduto", l:"Calf raise seduto", sets:3, repMin:15, repMax:20},
+    {k:"shoulder-press", l:"Shoulder press manubri", sets:3, repMin:10, repMax:10},
+    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15},
+    {k:"curl-ez", l:"Curl EZ", sets:2, repMin:12, repMax:12},
+    {k:"tricep-pushdown", l:"Push-down tricipiti", sets:2, repMin:12, repMax:12},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+  ]},
+};
+
+// costo: prezzo stimato in EUR per la porzione indicata. Per i piatti Nutribees uso la media
+// (spesa mensile dichiarata / 30 giorni / 2 pasti = 3.50€) perché non ho il prezzo esatto per piatto —
+// modificabile a mano se scopri prezzi diversi da piatto a piatto.
+const DEFAULT_FOODLIB = [
+  {name:"Uovo (1)", kcal:70, pro:7, carb:0, fat:5, costo:0.33},
+  {name:"Uovo ×2", kcal:140, pro:14, carb:0, fat:10, costo:0.66},
+  {name:"Uovo ×3", kcal:210, pro:21, carb:0, fat:15, costo:1.00},
+  {name:"Uovo ×4", kcal:280, pro:28, carb:0, fat:20, costo:1.33},
+  {name:"Banana", kcal:90, pro:1, carb:23, fat:0, costo:0.18},
+  {name:"Mela verde", kcal:78, pro:0, carb:21, fat:0, costo:0.30},
+  {name:"Pane Rustico Conad (1 fetta)", kcal:157, pro:5, carb:26, fat:3, costo:0.30},
+  {name:"Galletta di farro (1)", kcal:32, pro:1, carb:7, fat:0, costo:0.05},
+  {name:"Galletta di farro ×4", kcal:128, pro:4, carb:28, fat:0, costo:0.20},
+  {name:"Yogurt greco", kcal:88, pro:15, carb:7, fat:0, costo:0.35},
+  {name:"Fiocchi di latte", kcal:160, pro:28, carb:6, fat:2, costo:0.40},
+  {name:"Fiocchi di latte Santa Lucia", kcal:180, pro:18, carb:3, fat:11, costo:0.60},
+  {name:"Tonno al naturale", kcal:110, pro:25, carb:0, fat:2, costo:0.90},
+  {name:"Petto di tacchino", kcal:96, pro:18, carb:3, fat:2, costo:0.60},
+  {name:"Dessert high protein", kcal:168, pro:20, carb:13, fat:3, costo:1.20},
+  {name:"Nutribees Pollo Patate", kcal:378, pro:36, carb:38, fat:9, costo:3.50},
+  {name:"Nutribees Riso Pollo Coste", kcal:392, pro:34, carb:58, fat:2, costo:3.50},
+  {name:"Nutribees Quinoa Pollo", kcal:314, pro:37, carb:28, fat:7, costo:3.50},
+  {name:"Nutribees Riso Rosso Pollo Broccoli", kcal:349, pro:32, carb:47, fat:2, costo:3.50},
+  {name:"Nutribees Pollo Grigliato Spinaci Goji", kcal:320, pro:52, carb:6, fat:7, costo:3.50},
+  {name:"Nutribees Tagliata Tacchino Zucchine", kcal:243, pro:25, carb:3, fat:14, costo:3.50},
+  {name:"Nutribees Polpettone Patate Arrosto", kcal:426, pro:53.5, carb:0.8, fat:23.2, costo:3.50},
+  {name:"Nutribees Arrosto Vitello con Patate", kcal:283, pro:21.54, carb:19.65, fat:12.6, costo:3.50},
+  {name:"Nutribees Pollo Mandorle Edamame Riso Nero", kcal:367, pro:37, carb:35, fat:10.5, costo:3.50},
+  {name:"Nutribees Macinata e Piselli", kcal:559, pro:47, carb:19, fat:30, costo:3.50},
+  {name:"Nutribees Pollo Paprika Cous Cous Piselli", kcal:355, pro:35, carb:25, fat:13, costo:3.50},
+  {name:"Nutribees Farro Salmone Asparagi", kcal:439, pro:20, carb:36, fat:24, costo:3.50},
+  {name:"Nutribees Pollo Zucca Rosmarino", kcal:344, pro:37, carb:6, fat:19, costo:3.50},
+  {name:"Nutribees Insalata Tacchino Martinica", kcal:369, pro:33.1, carb:1.7, fat:25.1, costo:3.50},
+  {name:"Nutribees Riso Venere Merluzzo Broccoli", kcal:506, pro:33.6, carb:77.8, fat:4.8, costo:3.50},
+  {name:"Nutribees Spada e Verdure", kcal:386, pro:28, carb:18, fat:22, costo:3.50},
+  {name:"Nutribees Cous Cous alle Verdure", kcal:645, pro:10, carb:58, fat:40, costo:3.50},
+  {name:"Nutribees Riso Basmati Piselli Manzo", kcal:799, pro:30, carb:123, fat:18, costo:3.50},
+  {name:"Nutribees Pollo Mandorle Riso Basmati", kcal:508, pro:28.6, carb:92.4, fat:1.98, costo:3.50},
+  {name:"Nutribees Polpo Patate Olive", kcal:398, pro:28, carb:23, fat:21, costo:3.50},
+  {name:"Nutribees Riso Rosso Zucca Pollo", kcal:451, pro:34, carb:53, fat:11, costo:3.50},
+  {name:"Nutribees Farro, salmone e asparagi verdi", kcal:746, pro:30.0, carb:74.5, fat:36.4, costo:3.50},
+  {name:"Nutribees Filetto di salmone con patate al rosmarino", kcal:480, pro:26.0, carb:44.8, fat:21.9, costo:3.50},
+  {name:"Nutribees Cotoletta con patate", kcal:293, pro:38.1, carb:16.7, fat:8.2, costo:3.50},
+  {name:"Nutribees Filetto di orata con verdurine grigliate", kcal:234, pro:20.8, carb:18.0, fat:8.8, costo:3.50},
+  {name:"Nutribees Insalata di pollo con verdure", kcal:482, pro:42.0, carb:37.4, fat:18.3, costo:3.50},
+  {name:"Nutribees Pollo al curry con riso basmati", kcal:340, pro:21.33, carb:30.3, fat:14.8, costo:3.50},
+  {name:"Nutribees Farro, salmone e zucchine", kcal:465, pro:27.9, carb:42.1, fat:20.6, costo:3.50},
+  {name:"Nutribees Manzo tex mex con riso", kcal:420, pro:23.1, carb:39.0, fat:19.1, costo:3.50},
+  {name:"Nutribees Tortelli mugellani al ragù", kcal:730, pro:21.0, carb:76.9, fat:37.6, costo:3.50},
+  {name:"Nutribees Sformato di spinaci", kcal:457, pro:22.08, carb:43.9, fat:21.5, costo:3.50},
+  {name:"Nutribees Tortellini prosciutto e piselli", kcal:652, pro:24.0, carb:66.2, fat:32.4, costo:3.50},
+  {name:"Nutribees Gateau di patate", kcal:590, pro:33.8, carb:54.2, fat:26.5, costo:3.50},
+  {name:"Nutribees Spaghetti con crema di pecorino, pancetta e carciofi", kcal:732, pro:21.3, carb:77.0, fat:37.6, costo:3.50},
+  {name:"Nutribees Roll di frittata con prosciutto e formaggio", kcal:471, pro:46.4, carb:34.0, fat:16.6, costo:3.50},
+  {name:"Nutribees Composta di pollo con sedano, noci e gruviera", kcal:266, pro:30.6, carb:17.1, fat:8.4, costo:3.50},
+  {name:"Nutribees Merluzzo in curcuma con zucchine trifolate", kcal:319, pro:31.3, carb:23.1, fat:11.3, costo:3.50},
+  {name:"Nutribees Salmone e lenticchie", kcal:369, pro:28.1, carb:30.6, fat:14.9, costo:3.50},
+  {name:"Nutribees Merluzzo alla mediterranea", kcal:260, pro:31.0, carb:16.2, fat:7.9, costo:3.50},
+  {name:"Nutribees Hamburger con patate", kcal:841, pro:29.2, carb:86.2, fat:42.1, costo:3.50},
+  {name:"Nutribees Alette e patate arrosto", kcal:485, pro:30.8, carb:43.1, fat:21.1, costo:3.50},
+  {name:"Nutribees Tortellini al ragù", kcal:750, pro:21.0, carb:79.3, fat:38.8, costo:3.50},
+  {name:"Nutribees Lasagne al forno", kcal:423, pro:21.3, carb:40.2, fat:19.7, costo:3.50},
+  {name:"Nutribees Gulash", kcal:400, pro:29.76, carb:33.5, fat:16.3, costo:3.50},
+  {name:"Nutribees Bocconcini di pollo con funghi porcini", kcal:202, pro:35.8, carb:7.0, fat:3.4, costo:3.50},
+  {name:"Nutribees Rollatina di pollo con patate", kcal:435, pro:20.31, carb:42.1, fat:20.6, costo:3.50},
+  {name:"Nutribees Paella ai frutti di mare con verdure", kcal:375, pro:18.5, carb:56.2, fat:10, costo:3.50},
+  {name:"Nutribees Pollo e fagiolini", kcal:243, pro:49.2, carb:5.5, fat:2.7, costo:3.50},
+  {name:"Nutribees Pollo con fagiolini, asparagi e patate", kcal:454, pro:37.9, carb:36.0, fat:17.6, costo:3.50},
+  {name:"Nutribees Tagliatelle al ragù bolognese", kcal:507, pro:40.0, carb:41.3, fat:20.2, costo:3.50},
+  {name:"Nutribees Pollo con verdure saltate piccanti", kcal:325, pro:36.2, carb:21.5, fat:10.5, costo:3.50},
+  {name:"Nutribees Insalata di farro, melanzane saltate e lenticchie", kcal:474, pro:20.0, carb:46.9, fat:22.9, costo:3.50},
+  {name:"Nutribees Pollo teriyaki con riso basmati", kcal:536, pro:28.6, carb:50.2, fat:24.5, costo:3.50},
+  {name:"Nutribees Riso basmati con tonno e spinaci", kcal:282, pro:8.0, carb:29.8, fat:14.5, costo:3.50},
+  {name:"Nutribees Straccetti di pollo ai carciofi", kcal:358, pro:28.7, carb:29.0, fat:14.2, costo:3.50},
+  {name:"Nutribees Lasagne con scamorza e radicchio trevisano", kcal:583, pro:21.6, carb:59.1, fat:28.9, costo:3.50},
+  {name:"Nutribees Pollo in agrodolce con riso basmati", kcal:479, pro:21.78, carb:46.7, fat:22.8, costo:3.50},
+  {name:"Nutribees Risotto con crema di caprino e bresaola", kcal:561, pro:13.7, carb:60.3, fat:29.5, costo:3.50},
+  {name:"Nutribees Insalata di farro", kcal:452, pro:8.0, carb:50.0, fat:24.4, costo:3.50},
+  {name:"Nutribees Tortelli allo speck", kcal:525, pro:20.75, carb:52.6, fat:25.7, costo:3.50},
+  {name:"Nutribees Pollo con curcuma e zucchine grigliate", kcal:295, pro:58.0, carb:7.5, fat:3.7, costo:3.50},
+  {name:"Nutribees Zuppa di merluzzo e cannellini", kcal:173, pro:22.01, carb:10.1, fat:4.9, costo:3.50},
+  {name:"Nutribees Zuppa vongole patate e pancetta", kcal:279, pro:20.77, carb:23.3, fat:11.4, costo:3.50},
+  {name:"Nutribees Vellutata di piselli con seppioline", kcal:269, pro:23.56, carb:20.8, fat:10.2, costo:3.50},
+  {name:"Nutribees Fusilli radicchio e speck", kcal:552, pro:25.0, carb:53.8, fat:26.3, costo:3.50},
+  {name:"Nutribees Petto di pollo con broccoli", kcal:245, pro:50.4, carb:5.2, fat:2.5, costo:3.50},
+  {name:"Nutribees Riso samba", kcal:550, pro:24.2, carb:54.0, fat:26.4, costo:3.50},
+  {name:"Nutribees Pollo e zucchine", kcal:170, pro:37.3, carb:2.5, fat:1.2, costo:3.50},
+  {name:"Nutribees Gamberi e zucchine", kcal:116, pro:20.2, carb:4.2, fat:2.0, costo:3.50},
+  {name:"Nutribees Frittatine alle verdure", kcal:410, pro:32.4, carb:33.4, fat:16.3, costo:3.50},
+  {name:"Nutribees Tris del capitano", kcal:444, pro:28.6, carb:39.2, fat:19.2, costo:3.50},
+  {name:"Nutribees Trucioli panna speck e rucola", kcal:806, pro:26.2, carb:83.5, fat:40.8, costo:3.50},
+  {name:"Nutribees Garganelli al prosciutto crudo", kcal:532, pro:23.5, carb:52.2, fat:25.5, costo:3.50},
+  {name:"Nutribees Risotto ai funghi porcini", kcal:306, pro:9, carb:54, fat:10.53, costo:3.50},
+  {name:"Nutribees Insalata di fregula tropicale", kcal:326, pro:13.4, carb:30.4, fat:16, costo:3.50},
+  {name:"Nutribees Gnocchi, crema di asparagi e pancetta", kcal:478, pro:11.1, carb:75.3, fat:22.5, costo:3.50},
+  {name:"Nutribees Tagliatelle ai porcini", kcal:680, pro:15.58, carb:49, fat:45.6, costo:3.50},
+  {name:"Nutribees Riso venere con zucchine e gamberi", kcal:291, pro:18.3, carb:48.2, fat:2.4, costo:3.50},
+  {name:"Nutribees Gnocchi alla sorrentina", kcal:568, pro:16, carb:102.5, fat:9.6, costo:3.50},
+  {name:"Nutribees Riso basmati e verdure dai sapori orientali", kcal:416, pro:7.1, carb:56.3, fat:17.1, costo:3.50},
+  {name:"Nutribees Casoncelli bergamaschi di Zio Vittorio", kcal:840, pro:7, carb:72.9, fat:54.4, costo:3.50},
+  {name:"Nutribees Vellutata di zucchine", kcal:139, pro:2.5, carb:4.1, fat:12.7, costo:3.50},
+  {name:"Nutribees Torta salata carciofata", kcal:491, pro:17.6, carb:35.1, fat:33.2, costo:3.50},
+  {name:"Nutribees Lasagne friarielli e salsiccia", kcal:963, pro:35, carb:82, fat:55, costo:3.50},
+  {name:"Nutribees Burger vegetariano con bieta", kcal:410, pro:8.84, carb:51.74, fat:17.68, costo:3.50},
+  {name:"Nutribees Burger di tacchino con broccoli", kcal:210, pro:17.8, carb:6, fat:12.8, costo:3.50},
+  {name:"Nutribees Vellutata di finocchi", kcal:293, pro:3, carb:13.3, fat:25.6, costo:3.50},
+  {name:"Nutribees Risotto alla marinara", kcal:335, pro:16.25, carb:45, fat:9.75, costo:3.50},
+  {name:"Nutribees Bocconcini di nasello alla ligure", kcal:305, pro:14.25, carb:25.25, fat:16.5, costo:3.50},
+  {name:"Nutribees Pennette pomodoro e basilico", kcal:409, pro:11.72, carb:66.5, fat:12.75, costo:3.50},
+];
+
+// Piano fisso: gli stessi alimenti ogni giorno per colazione e spuntini — si spuntano con una casella.
+// Pranzo e cena restano fuori da qui perché il piatto Nutribees cambia di volta in volta.
+// Ogni alimento ha le macro di UNA unità (kcalU/proU/carbU/fatU) e una quantità standard (defaultQty).
+// Nel log si salva la quantità realmente consumata quel giorno (può essere diversa dallo standard).
+// Questa è solo la base di default: la copia editabile e persistita vive in DB.pianoFisso.
+const DEFAULT_PIANO_FISSO = {
+  "colazione": [
+    {id:"uova3", l:"Uova", unit:"uovo", kcalU:70, proU:7, carbU:0, fatU:5, defaultQty:3, costoU:0.33},
+    {id:"banana", l:"Banana fresca", unit:"banana", kcalU:90, proU:1, carbU:23, fatU:0, defaultQty:1, costoU:0.18},
+    {id:"avena-colazione", l:"Avena overnight (100g + 150-200ml latte)", unit:"porzione", kcalU:432, proU:18.2, carbU:69.5, fatU:7.2, defaultQty:1, costoU:0.50},
+  ],
+  "spuntino-am": [
+    {id:"whey-acqua", l:"Whey (30g) in acqua + creatina", unit:"porzione", kcalU:108, proU:17, carbU:8.7, fatU:0.5, defaultQty:1, costoU:0.65},
+  ],
+  "spuntino-pm": [
+    {id:"whey-latte", l:"Whey (30g) in 200ml latte", unit:"porzione", kcalU:178, proU:24, carbU:18.7, fatU:0.7, defaultQty:1, costoU:0.72},
+  ],
+  "spuntino-sera": [
+    {id:"avena-sera", l:"Avena overnight (80g + 120-150ml latte)", unit:"porzione", kcalU:304, proU:10.4, carbU:49.6, fatU:5.6, defaultQty:1, costoU:0.40},
+    {id:"mandorle", l:"Mandorle", unit:"porzione (35g)", kcalU:203, proU:7.4, carbU:7.7, fatU:17.5, defaultQty:1, costoU:0.45},
+    {id:"mela", l:"Mela verde", unit:"mela", kcalU:78, proU:0, carbU:21, fatU:0, defaultQty:1, costoU:0.30},
+  ],
+};
+
+function defaultDB(){
+  return {
+    version:1,
+    targets:{kcal:2350, pro:158, carb:280, fat:70},
+    targetWeight: 71,
+    programStart: todayStr(),
+    weeklyTarget: 5, // sessioni attese a settimana, solo per il grafico di aderenza
+    meals: {},
+    pianoFisso: JSON.parse(JSON.stringify(DEFAULT_PIANO_FISSO)),
+    pianoFissoLog: {}, // {data: {slot: {itemId: quantità}}}
+    pianoFissoSnap: {}, // {data: {slot: {itemId: macro congelate al momento della registrazione}}}
+    pianoFissoArchivio: [], // alimenti tolti dal piano ma ancora presenti nello storico
+    nutribeesStock: 0, // pasti Nutribees rimasti in scorta
+    nutribeesLeadDays: 7, // giorni di attesa per una nuova consegna
+    nutribeesRatePerDay: 2, // pasti Nutribees consumati in media al giorno (pranzo+cena)
+    workoutLog: {},
+    sonnoLog: {},
+    pesoLog: [],
+    fotoLog: [],
+    foodLibrary: JSON.parse(JSON.stringify(DEFAULT_FOODLIB)),
+    barcodeCache: {},
+    exdb: JSON.parse(JSON.stringify(DEFAULT_EXDB)),
+  };
+}
+
+let DB = loadDB();
+reconcileFoodLibrary();
+reconcilePianoFisso();
+migrateFissoOrfani();
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return defaultDB();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultDB(), parsed);
+  }catch(e){ return defaultDB(); }
+}
+function saveDB(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+// Tiene allineati i piatti "di serie" (stesso nome) alle macro più recenti definite in DEFAULT_FOODLIB,
+// così le correzioni fatte una volta (es. valori reali presi dal sito Nutribees) si applicano anche
+// a chi ha già l'app installata con dati vecchi salvati. Non tocca alimenti aggiunti/rinominati da te.
+function reconcileFoodLibrary(){
+  let changed = false;
+  DEFAULT_FOODLIB.forEach(def=>{
+    const existing = DB.foodLibrary.find(f=>f.name===def.name);
+    if(existing && (existing.kcal!==def.kcal || existing.pro!==def.pro || existing.carb!==def.carb || existing.fat!==def.fat || existing.costo!==def.costo)){
+      existing.kcal=def.kcal; existing.pro=def.pro; existing.carb=def.carb; existing.fat=def.fat; existing.costo=def.costo;
+      changed = true;
+    }
+  });
+  if(changed) saveDB();
+}
+// Stesso principio di reconcileFoodLibrary, ma per gli alimenti del piano fisso (stesso id = valori aggiornati).
+// Salta gli item marcati "customized" (modificati a mano dall'utente tramite l'editor in-app),
+// altrimenti ogni correzione futura da parte mia cancellerebbe le sue personalizzazioni.
+function reconcilePianoFisso(){
+  let changed = false;
+  if(!DB.pianoFisso) return;
+  Object.keys(DEFAULT_PIANO_FISSO).forEach(slot=>{
+    if(!DB.pianoFisso[slot]) return;
+    DEFAULT_PIANO_FISSO[slot].forEach(def=>{
+      const existing = DB.pianoFisso[slot].find(it=>it.id===def.id);
+      if(existing && !existing.customized && (existing.kcalU!==def.kcalU || existing.proU!==def.proU || existing.carbU!==def.carbU || existing.fatU!==def.fatU)){
+        existing.kcalU=def.kcalU; existing.proU=def.proU; existing.carbU=def.carbU; existing.fatU=def.fatU;
+        changed = true;
+      }
+    });
+  });
+  if(changed) saveDB();
+}
+
+/* ============================= HELPERS ============================= */
+function todayStr(){ return fmtDate(new Date()); }
+function fmtDate(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function addDays(dateStr, n){
+  const d = new Date(dateStr+"T12:00:00");
+  d.setDate(d.getDate()+n);
+  return fmtDate(d);
+}
+function niceDate(dateStr){
+  const d = new Date(dateStr+"T12:00:00");
+  return `${IT_DAYS[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+}
+function weekdayOf(dateStr){ return new Date(dateStr+"T12:00:00").getDay(); }
+function lunediCorrente(dateStr){
+  const wd = weekdayOf(dateStr); // 0=dom..6=sab
+  const daysSinceMonday = wd===0 ? 6 : wd-1;
+  return addDays(dateStr, -daysSinceMonday);
+}
+function round1(n){ return Math.round(n*10)/10; }
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._h);
+  toast._h = setTimeout(()=>t.classList.remove("show"), 2200);
+}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+/* ---- Storico immutabile ------------------------------------------------
+   Prima i totali di un giorno passato venivano ricalcolati sui valori ATTUALI
+   dell'alimento: modificarlo riscriveva la storia, eliminarlo la faceva sparire.
+   Ora ogni registrazione congela i valori del momento (pianoFissoSnap) e gli
+   alimenti tolti dal piano finiscono in archivio invece che nel nulla.        */
+function resolveFissoItem(dateStr, slot, itemId){
+  const bag = DB.pianoFissoSnap && DB.pianoFissoSnap[dateStr] && DB.pianoFissoSnap[dateStr][slot];
+  if(bag && bag[itemId]) return bag[itemId];
+  const cur = (DB.pianoFisso[slot]||[]).find(it=>it.id===itemId);
+  if(cur) return cur;
+  const arc = (DB.pianoFissoArchivio||[]).find(it=>it.id===itemId && it.slot===slot);
+  if(arc) return arc;
+  return null;
+}
+function snapshotFisso(dateStr, slot, itemId){
+  const it = (DB.pianoFisso[slot]||[]).find(x=>x.id===itemId);
+  if(!it) return;
+  if(!DB.pianoFissoSnap) DB.pianoFissoSnap = {};
+  if(!DB.pianoFissoSnap[dateStr]) DB.pianoFissoSnap[dateStr] = {};
+  if(!DB.pianoFissoSnap[dateStr][slot]) DB.pianoFissoSnap[dateStr][slot] = {};
+  DB.pianoFissoSnap[dateStr][slot][itemId] = {
+    id:it.id, l:it.l, unit:it.unit, defaultQty:it.defaultQty,
+    kcalU:it.kcalU, proU:it.proU, carbU:it.carbU, fatU:it.fatU, costoU:it.costoU||0
+  };
+}
+// Recupera le righe di log che puntano ad alimenti spariti dal piano: crea una voce
+// in archivio, così quei giorni tornano visibili e i valori si possono reinserire.
+function migrateFissoOrfani(){
+  if(!DB.pianoFissoArchivio) DB.pianoFissoArchivio = [];
+  if(!DB.pianoFissoSnap) DB.pianoFissoSnap = {};
+  let changed = false;
+  Object.keys(DB.pianoFissoLog||{}).forEach(d=>{
+    Object.keys(DB.pianoFissoLog[d]||{}).forEach(slot=>{
+      Object.keys(DB.pianoFissoLog[d][slot]||{}).forEach(id=>{
+        if(!(Number(DB.pianoFissoLog[d][slot][id])>0)) return;
+        if(resolveFissoItem(d, slot, id)) return;
+        DB.pianoFissoArchivio.push({
+          id, slot, l:"⚠ "+id+" — valori da reinserire", unit:"porzione", defaultQty:1,
+          kcalU:0, proU:0, carbU:0, fatU:0, costoU:0, archiviato:true
+        });
+        changed = true;
+      });
+    });
+  });
+  if(changed) saveDB();
+}
+function allMealItemsForDate(dateStr){
+  const out = [];
+  const log = DB.pianoFissoLog[dateStr] || {};
+  const slots = Array.from(new Set(Object.keys(DB.pianoFisso).concat(Object.keys(log))));
+  slots.forEach(slot=>{
+    const qtys = log[slot] || {};
+    const ids = Array.from(new Set(
+      (DB.pianoFisso[slot]||[]).map(it=>it.id).concat(Object.keys(qtys))
+    ));
+    ids.forEach(id=>{
+      const qty = Number(qtys[id])||0;
+      if(qty<=0) return;
+      const item = resolveFissoItem(dateStr, slot, id);
+      if(!item) return;
+      const label = qty===item.defaultQty ? item.l : `${item.l} ×${qty}`;
+      out.push({
+        id:"fisso-"+slot+"-"+id, name:label,
+        kcal:item.kcalU*qty, pro:item.proU*qty, carb:item.carbU*qty, fat:item.fatU*qty,
+        costo:(item.costoU||0)*qty,
+        slot, fisso:true
+      });
+    });
+  });
+  (DB.meals[dateStr]||[]).forEach(m=> out.push(m));
+  return out;
+}
+function dayCostTotal(dateStr){
+  return allMealItemsForDate(dateStr).reduce((s,m)=> s+(Number(m.costo)||0), 0);
+}
+function dayTotals(dateStr){
+  const items = allMealItemsForDate(dateStr);
+  return items.reduce((acc,m)=>{
+    acc.kcal += Number(m.kcal)||0;
+    acc.pro += Number(m.pro)||0;
+    acc.carb += Number(m.carb)||0;
+    acc.fat += Number(m.fat)||0;
+    return acc;
+  }, {kcal:0,pro:0,carb:0,fat:0});
+}
+function setFissoQty(dateStr, slot, itemId, val){
+  if(!DB.pianoFissoLog[dateStr]) DB.pianoFissoLog[dateStr] = {};
+  if(!DB.pianoFissoLog[dateStr][slot]) DB.pianoFissoLog[dateStr][slot] = {};
+  const qty = val==="" ? 0 : Math.max(0, Number(val)||0);
+  DB.pianoFissoLog[dateStr][slot][itemId] = qty;
+  if(qty>0) snapshotFisso(dateStr, slot, itemId);
+  saveDB();
+  render();
+}
+/* ---- Nutribees: libreria, scorte e suggerimenti ---- */
+function nutribeesLib(){
+  return DB.foodLibrary.filter(f=>f.name.startsWith("Nutribees"));
+}
+function addNutribeesDish(){
+  const nomeGrezzo = document.getElementById("nbNewName").value.trim();
+  if(!nomeGrezzo){ toast("Inserisci il nome del piatto"); return; }
+  const name = "Nutribees " + nomeGrezzo.replace(/^Nutribees\s*/i,"");
+  const kcal = Number(document.getElementById("nbNewKcal").value)||0;
+  const pro = Number(document.getElementById("nbNewPro").value)||0;
+  const carb = Number(document.getElementById("nbNewCarb").value)||0;
+  const fat = Number(document.getElementById("nbNewFat").value)||0;
+  const costo = Number(document.getElementById("nbNewCosto").value)||0;
+  const existing = DB.foodLibrary.find(f=>f.name.toLowerCase()===name.toLowerCase());
+  if(existing){
+    existing.kcal=kcal; existing.pro=pro; existing.carb=carb; existing.fat=fat; existing.costo=costo;
+    toast(`${name} aggiornato`);
+  } else {
+    DB.foodLibrary.push({name, kcal, pro, carb, fat, costo});
+    toast(`${name} aggiunto`);
+  }
+  document.getElementById("nbNewName").value="";
+  document.getElementById("nbNewKcal").value="";
+  document.getElementById("nbNewPro").value="";
+  document.getElementById("nbNewCarb").value="";
+  document.getElementById("nbNewFat").value="";
+  saveDB(); render();
+}
+function getNutribeesFor(dateStr, slotKey){
+  return (DB.meals[dateStr]||[]).find(m=>m.slot===slotKey);
+}
+function setNutribeesPasto(dateStr, slotKey, libIdx){
+  const f = DB.foodLibrary[libIdx];
+  if(!f) return;
+  const already = (DB.meals[dateStr]||[]).some(m=>m.slot===slotKey);
+  DB.meals[dateStr] = (DB.meals[dateStr]||[]).filter(m=>m.slot!==slotKey);
+  DB.meals[dateStr].push({id:uid(), name:f.name, kcal:f.kcal, pro:f.pro, carb:f.carb, fat:f.fat, costo:f.costo||0, slot:slotKey});
+  if(!already){ DB.nutribeesStock = Math.max(0, (DB.nutribeesStock||0) - 1); }
+  saveDB(); toast(`${f.name} aggiunto`); render();
+}
+function removeNutribeesPasto(dateStr, slotKey){
+  const had = (DB.meals[dateStr]||[]).some(m=>m.slot===slotKey);
+  DB.meals[dateStr] = (DB.meals[dateStr]||[]).filter(m=>m.slot!==slotKey);
+  if(had){ DB.nutribeesStock = (DB.nutribeesStock||0) + 1; }
+  saveDB(); render();
+}
+function nutribeesGiorniResidui(){
+  const rate = DB.nutribeesRatePerDay || 2;
+  return rate>0 ? (DB.nutribeesStock||0)/rate : Infinity;
+}
+function nutribeesAvviso(){
+  const giorni = nutribeesGiorniResidui();
+  const lead = DB.nutribeesLeadDays || 7;
+  return { urgente: giorni <= lead, giorni };
+}
+function nutribeesSuggerimenti(){
+  const oggi = todayStr();
+  const wd = weekdayOf(oggi); // 0=dom..6=sab
+  const daysSinceMonday = (wd+6)%7;
+  const lunedi = addDays(oggi, -daysSinceMonday);
+  const giorniTrascorsi = daysSinceMonday+1;
+  let tot = {pro:0,carb:0,fat:0};
+  for(let i=0;i<giorniTrascorsi;i++){
+    const t = dayTotals(addDays(lunedi,i));
+    tot.pro+=t.pro; tot.carb+=t.carb; tot.fat+=t.fat;
+  }
+  const targetSettimana = {
+    pro: DB.targets.pro*giorniTrascorsi,
+    carb: DB.targets.carb*giorniTrascorsi,
+    fat: DB.targets.fat*giorniTrascorsi,
+  };
+  const scostamenti = [
+    {k:"pro", label:"proteine", pct: targetSettimana.pro>0 ? tot.pro/targetSettimana.pro : 1},
+    {k:"carb", label:"carboidrati", pct: targetSettimana.carb>0 ? tot.carb/targetSettimana.carb : 1},
+    {k:"fat", label:"grassi", pct: targetSettimana.fat>0 ? tot.fat/targetSettimana.fat : 1},
+  ];
+  scostamenti.sort((a,b)=>a.pct-b.pct);
+  const piuIndietro = scostamenti[0];
+  if(piuIndietro.pct >= 0.95) return null;
+  const lib = nutribeesLib();
+  if(lib.length===0) return null;
+  const ordinati = [...lib].sort((a,b)=> b[piuIndietro.k]-a[piuIndietro.k]);
+  return { macro: piuIndietro.label, pct: Math.round(piuIndietro.pct*100), piatti: ordinati.slice(0,3) };
+}
+// Prossimo giorno di scheda: calcolato SEMPRE dall'ultima sessione segnata "fatta",
+// mai dal giorno del calendario. Se non hai mai completato nulla, si parte dal giorno 1.
+// Se salti una sessione (nessun dato inserito), il puntatore resta fermo: la prossima
+// volta ti verrà riproposto lo stesso giorno finché non lo fai davvero.
+function computeNextGiorno(){
+  const doneDates = Object.keys(DB.workoutLog).filter(d=>DB.workoutLog[d] && DB.workoutLog[d].done).sort();
+  if(doneDates.length===0) return 1;
+  const lastDate = doneDates[doneDates.length-1];
+  const lastGiorno = DB.workoutLog[lastDate].giorno || 1;
+  return (Number(lastGiorno) % 5) + 1;
+}
+function autoMarkDoneIfData(wl){
+  const hasAny = (obj) => obj && Object.values(obj).some(arr =>
+    Array.isArray(arr) && arr.some(v => v!=="" && v!==undefined && v!==null && !isNaN(v) && Number(v)>0)
+  );
+  if(hasAny(wl.pesi) || hasAny(wl.repsLog)){
+    wl.done = true;
+    wl.skipped = false;
+  }
+}
+function lastWorkoutFor(exKey, beforeDate){
+  const dates = Object.keys(DB.workoutLog).filter(d=>d<=beforeDate).sort().reverse();
+  for(const d of dates){
+    const w = DB.workoutLog[d];
+    const kgArr = w && w.pesi && w.pesi[exKey];
+    if(Array.isArray(kgArr) && kgArr.some(v=>v!=="" && v!==undefined && v!==null)){
+      const repArr = (w.repsLog && w.repsLog[exKey]) || [];
+      return {date:d, kg:kgArr, reps:repArr};
+    }
+  }
+  return null;
+}
+
+/* ============================= STATE ============================= */
+let currentTab = "oggi";
+let selDate = todayStr(); // for Pasti/Allenamento tabs
+let barcodeResult = null; // {barcode,name,kcal100,pro100,carb100,fat100,grams}
+let scannerStream = null;
+let scannerRAF = null;
+let selectedExForHistory = ""; // esercizio scelto nella tab Progressi
+let editorGiorno = 1; // giorno mostrato nell'editor scheda in Impostazioni
+let editorPastoSlot = "colazione"; // slot mostrato nell'editor piano fisso in Impostazioni
+let mostraAltro = false; // sezione secondaria in Pasti (libreria/barcode/alimento libero)
+let nutribeesSearchQuery = {pranzo:"", cena:""};
+
+/* ============================= BARCODE SCANNER ============================= */
+async function openBarcodeScanner(){
+  if(!("BarcodeDetector" in window)){
+    toast("Fotocamera non supportata su questo browser — usa il codice manuale qui sotto");
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    toast("Fotocamera non disponibile (serve https, non file locale) — usa il codice manuale");
+    return;
+  }
+  try{
+    scannerStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  }catch(e){
+    toast("Fotocamera non accessibile: usa il codice manuale");
+    return;
+  }
+  const overlay = document.createElement("div");
+  overlay.id = "scannerOverlay";
+  overlay.style = "position:fixed;inset:0;background:#000;z-index:100;display:flex;flex-direction:column;";
+  overlay.innerHTML = `
+    <video id="scannerVideo" autoplay playsinline muted style="flex:1;object-fit:cover;width:100%;"></video>
+    <div style="padding:14px;background:#151B26;display:flex;flex-direction:column;gap:8px;">
+      <div style="text-align:center;font-size:12px;color:#8B93A7;">Inquadra il codice a barre</div>
+      <button class="btn block" onclick="closeBarcodeScanner()">Annulla</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const video = document.getElementById("scannerVideo");
+  video.srcObject = scannerStream;
+  const detector = new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
+  const loop = async ()=>{
+    if(!document.getElementById("scannerOverlay")) return;
+    try{
+      const codes = await detector.detect(video);
+      if(codes.length>0){
+        const code = codes[0].rawValue;
+        closeBarcodeScanner();
+        lookupBarcode(code);
+        return;
+      }
+    }catch(e){}
+    scannerRAF = requestAnimationFrame(loop);
+  };
+  scannerRAF = requestAnimationFrame(loop);
+}
+function closeBarcodeScanner(){
+  if(scannerRAF) cancelAnimationFrame(scannerRAF);
+  scannerRAF = null;
+  if(scannerStream){ scannerStream.getTracks().forEach(t=>t.stop()); scannerStream=null; }
+  const overlay = document.getElementById("scannerOverlay");
+  if(overlay) overlay.remove();
+}
+async function lookupBarcode(rawCode){
+  const code = String(rawCode||"").trim();
+  if(!code){ toast("Inserisci un codice a barre"); return; }
+  if(DB.barcodeCache[code]){
+    barcodeResult = Object.assign({barcode:code, grams:100}, DB.barcodeCache[code]);
+    render();
+    return;
+  }
+  toast("Cerco il prodotto...");
+  try{
+    const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments`);
+    const data = await resp.json();
+    if(data.status !== 1 || !data.product){ toast("Prodotto non trovato nel database"); return; }
+    const p = data.product;
+    const n = p.nutriments || {};
+    const kcal100 = n["energy-kcal_100g"];
+    if(kcal100===undefined || kcal100===null){ toast("Dati nutrizionali mancanti per questo prodotto"); return; }
+    const name = [p.product_name, p.brands].filter(Boolean).join(" — ") || `Prodotto ${code}`;
+    const info = {
+      name,
+      kcal100: Number(kcal100)||0,
+      pro100: Number(n["proteins_100g"])||0,
+      carb100: Number(n["carbohydrates_100g"])||0,
+      fat100: Number(n["fat_100g"])||0,
+    };
+    DB.barcodeCache[code] = info;
+    saveDB();
+    barcodeResult = Object.assign({barcode:code, grams:100}, info);
+    render();
+  }catch(e){
+    toast("Errore di connessione — riprova o inserisci a mano");
+  }
+}
+function renderBarcodeResultHtml(){
+  const b = barcodeResult;
+  const g = b.grams||100;
+  const factor = g/100;
+  return `
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:8px;">
+      <div class="row between" style="margin-bottom:6px;">
+        <div style="font-weight:700;font-size:13px;">${b.name}</div>
+        <button class="del" onclick="barcodeResult=null; render();">✕</button>
+      </div>
+      <div class="field"><label class="f">Grammi consumati</label>
+        <input type="number" value="${g}" inputmode="decimal" oninput="barcodeResult.grams=Number(this.value)||0; renderBarcodeResultPreview();"></div>
+      <div id="barcodePreview" style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+        ${Math.round(b.kcal100*factor)} kcal · P${round1(b.pro100*factor)} C${round1(b.carb100*factor)} G${round1(b.fat100*factor)}
+      </div>
+      <button class="btn primary block" onclick="addBarcodeFood()">Aggiungi al pasto</button>
+    </div>`;
+}
+function renderBarcodeResultPreview(){
+  const el = document.getElementById("barcodePreview");
+  if(!el || !barcodeResult) return;
+  const factor = (barcodeResult.grams||0)/100;
+  el.textContent = `${Math.round(barcodeResult.kcal100*factor)} kcal · P${round1(barcodeResult.pro100*factor)} C${round1(barcodeResult.carb100*factor)} G${round1(barcodeResult.fat100*factor)}`;
+}
+function addBarcodeFood(){
+  if(!barcodeResult) return;
+  const g = barcodeResult.grams||100;
+  const factor = g/100;
+  const slot = document.getElementById("slotSelect")?.value || "storico";
+  const item = {
+    id:uid(),
+    name: `${barcodeResult.name} (${g}g)`,
+    kcal: round1(barcodeResult.kcal100*factor),
+    pro: round1(barcodeResult.pro100*factor),
+    carb: round1(barcodeResult.carb100*factor),
+    fat: round1(barcodeResult.fat100*factor),
+    slot,
+  };
+  if(!DB.meals[selDate]) DB.meals[selDate]=[];
+  DB.meals[selDate].push(item);
+  if(!DB.foodLibrary.find(f=>f.name===item.name)){
+    DB.foodLibrary.push({name:item.name, kcal:item.kcal, pro:item.pro, carb:item.carb, fat:item.fat});
+  }
+  barcodeResult = null;
+  saveDB(); toast("Aggiunto dal barcode"); render();
+}
+
+/* ============================= RENDER ROOT ============================= */
+function render(){
+  document.querySelectorAll("nav.tabs button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.tab===currentTab);
+  });
+  const app = document.getElementById("app");
+  if(currentTab==="oggi") return renderOggi(app);
+  if(currentTab==="pasti") return renderPasti(app);
+  if(currentTab==="allenamento") return renderAllenamento(app);
+  if(currentTab==="progressi") return renderProgressi(app);
+  if(currentTab==="impostazioni") return renderImpostazioni(app);
+}
+
+document.querySelectorAll("nav.tabs button").forEach(b=>{
+  b.addEventListener("click", ()=>{ currentTab=b.dataset.tab; render(); window.scrollTo(0,0); });
+});
+
+/* ============================= TAB: OGGI ============================= */
+function renderOggi(app){
+  document.getElementById("headerTitle").textContent = "Hustler Fitness";
+  document.getElementById("headerSub").textContent = niceDate(todayStr());
+
+  const t = todayStr();
+  const yest = addDays(t,-1);
+  const totals = dayTotals(t);
+  const totalsYest = dayTotals(yest);
+  const targets = DB.targets;
+  const wlOggi = DB.workoutLog[t];
+  const doneOggi = wlOggi && wlOggi.done;
+  const giornoOggi = doneOggi ? wlOggi.giorno : computeNextGiorno();
+
+  let banners = "";
+  if(totalsYest.kcal>0 && totalsYest.kcal < 1500){
+    banners += `<div class="banner bad">⚠️ Ieri sotto le 1500 kcal (${Math.round(totalsYest.kcal)}). Aspettati meno lucidità ed energia nelle call di oggi — recupera con calma, non saltare i prossimi pasti.</div>`;
+  }
+  const nbAvviso = nutribeesAvviso();
+  if(nbAvviso.urgente){
+    banners += `<div class="banner bad">⚠️ Scorte Nutribees: ${DB.nutribeesStock||0} pasti rimasti (~${Math.floor(nbAvviso.giorni)} giorni). Con ${DB.nutribeesLeadDays||7} giorni di consegna, ordina ora.</div>`;
+  }
+  // Promemoria pesata e foto: due avvisi indipendenti, entrambi partono dal lunedì della settimana
+  // corrente e restano finché non fai l'azione specifica — non spariscono da soli col cambio di giorno.
+  const lunediSettimana = lunediCorrente(t);
+  const ritardo = t===lunediSettimana ? "" : ` (dovevi farla lunedì ${niceDate(lunediSettimana)})`;
+  const pesoFattoSettimana = DB.pesoLog.some(p=>p.date>=lunediSettimana && p.date<=t);
+  if(!pesoFattoSettimana){
+    banners += `<div class="banner warn">⚖️ Questa settimana manca ancora la pesata${ritardo}. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
+  }
+  const fotoFattaSettimana = DB.fotoLog.some(f=>f.date>=lunediSettimana && f.date<=t);
+  if(!fotoFattaSettimana){
+    banners += `<div class="banner warn">📸 Questa settimana manca ancora la foto progressi${ritardo}. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
+  }
+  if(!doneOggi){
+    banners += `<div class="banner warn">Prossima sessione in coda: <b>${DB.exdb[giornoOggi].label}</b>. Appena inserisci un peso o delle ripetizioni viene segnata fatta e si passa al giorno dopo — se non fai nulla, resta in coda finché non la fai.</div>`;
+  } else {
+    banners += `<div class="banner ok">Sessione di oggi già segnata: ${DB.exdb[giornoOggi].label} ✅</div>`;
+  }
+  // streak: giorni di allenamento consecutivi segnati "fatto", scansione a ritroso.
+  // Un giorno senza nessuna voce nel log non rompe lo streak (potresti non esserti allenato
+  // quel giorno per scelta, senza che sia un salto). Un giorno segnato "saltato" lo rompe.
+  let streak = 0;
+  for(let i=0;i<90;i++){
+    const dd = addDays(t,-i);
+    const w = DB.workoutLog[dd];
+    if(!w) continue;
+    if(w.done) streak++;
+    else if(w.skipped) break;
+  }
+
+  const last7 = [...Array(7)].map((_,i)=>addDays(t,-i));
+  const avgKcal7 = last7.reduce((s,d)=>s+dayTotals(d).kcal,0)/7;
+
+  app.innerHTML = `
+    ${banners}
+    <div class="card">
+      <h2>Target di oggi</h2>
+      ${macroBar("Calorie", totals.kcal, targets.kcal, "kcal")}
+      ${macroBar("Proteine", totals.pro, targets.pro, "g")}
+      ${macroBar("Carboidrati", totals.carb, targets.carb, "g")}
+      ${macroBar("Grassi", totals.fat, targets.fat, "g")}
+      <div class="row" style="margin-top:8px;">
+        <button class="btn primary block" onclick="goToPasti('${t}')">+ Aggiungi pasto</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Allenamento</h2>
+      <div class="row between" style="margin-bottom:8px;">
+        <div style="font-size:14px;font-weight:700;">${DB.exdb[giornoOggi].label}</div>
+        ${doneOggi ? '<span class="pill ok">Fatto</span>' : '<span class="pill warn">Da fare</span>'}
+      </div>
+      <button class="btn primary block" onclick="goToAllenamento('${t}')">Apri scheda</button>
+    </div>
+
+    <div class="grid3" style="margin-bottom:12px;">
+      <div class="stat"><div class="n">${streak}</div><div class="l">giorni streak allenamento</div></div>
+      <div class="stat"><div class="n">${Math.round(avgKcal7)}</div><div class="l">kcal medie 7gg</div></div>
+      <div class="stat"><div class="n">${DB.pesoLog.length ? DB.pesoLog[DB.pesoLog.length-1].kg+"kg" : "—"}</div><div class="l">ultimo peso</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Pasti di oggi</h2>
+      ${renderMealsList(t, false)}
+    </div>
+  `;
+}
+function macroBar(label, val, target, unit){
+  const pct = target>0 ? Math.min(100, Math.round((val/target)*100)) : 0;
+  let color = "var(--green)";
+  if(pct<60) color="var(--amber)";
+  if(pct<30) color="var(--red)";
+  if(pct>115) color="var(--amber)";
+  return `<div class="macro-line">
+    <div class="lbl"><b>${label}</b><span>${Math.round(val*10)/10}${unit} / ${target}${unit}</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>
+  </div>`;
+}
+function goToPasti(date){ selDate=date; currentTab="pasti"; render(); window.scrollTo(0,0); }
+function goToAllenamento(date){ selDate=date; currentTab="allenamento"; render(); window.scrollTo(0,0); }
+function goToProgressi(){ currentTab="progressi"; render(); window.scrollTo(0,0); }
+
+/* ============================= TAB: PASTI ============================= */
+function renderPasti(app){
+  document.getElementById("headerTitle").textContent = "Pasti";
+  document.getElementById("headerSub").textContent = niceDate(selDate);
+  const totals = dayTotals(selDate);
+  const costoGiorno = dayCostTotal(selDate);
+  const sugg = nutribeesSuggerimenti();
+
+  app.innerHTML = `
+    <div class="daysel" id="dateStrip"></div>
+    <div class="card">
+      ${macroBar("Calorie", totals.kcal, DB.targets.kcal, "kcal")}
+      ${macroBar("Proteine", totals.pro, DB.targets.pro, "g")}
+      ${macroBar("Carboidrati", totals.carb, DB.targets.carb, "g")}
+      ${macroBar("Grassi", totals.fat, DB.targets.fat, "g")}
+      <div class="row between" style="margin-top:6px;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="font-size:13px;color:var(--muted);">Spesa di oggi</div>
+        <div style="font-size:17px;font-weight:800;color:var(--gold-light);">${costoGiorno.toFixed(2)}€</div>
+      </div>
+    </div>
+
+    ${sugg ? `<div class="banner warn">Questa settimana sei al ${sugg.pct}% del target ${sugg.macro}. Per pranzo/cena prova: ${sugg.piatti.map(p=>p.name.replace('Nutribees ','')).join(' · ')}.</div>` : ""}
+
+    <div class="card">
+      <h2>Piano fisso di oggi</h2>
+      ${renderPianoFissoSlot("colazione","Colazione")}
+      ${renderPianoFissoSlot("spuntino-am","Spuntino mattina")}
+      ${renderPianoFissoSlot("spuntino-pm","Spuntino pomeriggio")}
+      ${renderPianoFissoSlot("spuntino-sera","Spuntino sera")}
+    </div>
+
+    <div class="card">
+      <h2>Pranzo — Nutribees</h2>
+      ${renderNutribeesSlot("pranzo")}
+    </div>
+
+    <div class="card">
+      <h2>Cena — Nutribees</h2>
+      ${renderNutribeesSlot("cena")}
+    </div>
+
+    <div class="card">
+      <h2>Nuovo piatto Nutribees</h2>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;line-height:1.4;">
+        Non registrato tra quelli che conosco? Scrivi i valori dall'etichetta del piatto — si aggiunge alla lista e da quel momento lo trovi nella ricerca di pranzo/cena.
+      </div>
+      <div class="field"><label class="f">Nome piatto (senza "Nutribees")</label><input type="text" id="nbNewName" placeholder="Es. Salmone Riso Zucchine"></div>
+      <div class="grid4">
+        <div class="field"><label class="f">Kcal</label><input type="number" id="nbNewKcal" inputmode="decimal"></div>
+        <div class="field"><label class="f">Pro (g)</label><input type="number" id="nbNewPro" inputmode="decimal"></div>
+        <div class="field"><label class="f">Carb (g)</label><input type="number" id="nbNewCarb" inputmode="decimal"></div>
+        <div class="field"><label class="f">Grassi (g)</label><input type="number" id="nbNewFat" inputmode="decimal"></div>
+      </div>
+      <div class="field"><label class="f">Costo (€)</label><input type="number" id="nbNewCosto" inputmode="decimal" step="0.01" value="3.50"></div>
+      <button class="btn primary block" onclick="addNutribeesDish()">Aggiungi alla lista</button>
+    </div>
+
+    <div class="card">
+      <h2>Riepilogo giornata</h2>
+      ${renderMealsList(selDate, true)}
+    </div>
+
+    <button class="btn block" style="margin-bottom:12px;" onclick="mostraAltro=!mostraAltro; render();">
+      ${mostraAltro ? "▲ Nascondi altre opzioni" : "▼ Altro (fuori piano / barcode / libero)"}
+    </button>
+
+    ${mostraAltro ? `
+    <div class="card">
+      <h2>Aggiungi dalla libreria</h2>
+      <div class="field">
+        <select id="slotSelect">
+          ${SLOTS.map(s=>`<option value="${s.k}">${s.l}</option>`).join("")}
+        </select>
+      </div>
+      <input type="text" id="foodSearch" placeholder="Cerca alimento..." oninput="renderFoodLibList()" style="margin-bottom:10px;">
+      <div id="foodLibList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Scansiona barcode</h2>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;line-height:1.4;">
+        Cerca su Open Food Facts (database pubblico). Serve connessione internet. La fotocamera funziona solo
+        se l'app gira su https e il browser la supporta (Chrome Android sì, Safari/iPhone no) — su iPhone usa il codice manuale.
+      </div>
+      <div class="row" style="gap:8px;margin-bottom:4px;">
+        <button class="btn" onclick="openBarcodeScanner()">📷 Scansiona</button>
+        <input type="text" id="manualBarcode" placeholder="o codice a barre" inputmode="numeric">
+        <button class="btn primary" onclick="lookupBarcode(document.getElementById('manualBarcode').value)">Cerca</button>
+      </div>
+      ${barcodeResult ? renderBarcodeResultHtml() : ""}
+    </div>
+
+    <div class="card">
+      <h2>Aggiungi alimento libero</h2>
+      <div class="field"><label class="f">Nome</label><input type="text" id="freeName" placeholder="Es. Petto di pollo"></div>
+      <div class="grid4">
+        <div class="field"><label class="f">Kcal</label><input type="number" id="freeKcal" inputmode="decimal"></div>
+        <div class="field"><label class="f">Pro (g)</label><input type="number" id="freePro" inputmode="decimal"></div>
+        <div class="field"><label class="f">Carb (g)</label><input type="number" id="freeCarb" inputmode="decimal"></div>
+        <div class="field"><label class="f">Grassi (g)</label><input type="number" id="freeFat" inputmode="decimal"></div>
+      </div>
+      <div class="field"><label class="f">Costo (€)</label><input type="number" id="freeCosto" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+      <button class="btn primary block" onclick="addFreeFood()">Aggiungi</button>
+    </div>
+    ` : ""}
+  `;
+  renderDateStrip();
+  if(mostraAltro) renderFoodLibList();
+}
+function renderPianoFissoSlot(slotKey, label){
+  const items = DB.pianoFisso[slotKey];
+  const log = (DB.pianoFissoLog[selDate] && DB.pianoFissoLog[selDate][slotKey]) || {};
+  return `
+    <div class="slot-title">${label}</div>
+    ${items.map(item=>{
+      const qty = Number(log[item.id])||0;
+      const step = item.defaultQty>=1 ? 1 : 0.5;
+      return `
+      <div class="fissoitem">
+        <div class="fissoitem-info">
+          <div class="fissoitem-name">${item.l}</div>
+          <div class="fissoitem-macro">${Math.round(item.kcalU)} kcal · P${item.proU} C${item.carbU} G${item.fatU} · ${(item.costoU||0).toFixed(2)}€ a ${item.unit}${qty>0 ? ` — oggi ${Math.round(item.kcalU*qty)} kcal, ${((item.costoU||0)*qty).toFixed(2)}€` : ""}</div>
+        </div>
+        <div class="fissoitem-controls">
+          <input type="number" min="0" step="${step}" inputmode="decimal" value="${qty||""}" placeholder="0"
+            onchange="setFissoQty('${selDate}','${slotKey}','${item.id}', this.value)">
+          ${qty!==item.defaultQty ? `<button class="btn small" onclick="setFissoQty('${selDate}','${slotKey}','${item.id}', ${item.defaultQty})">×${item.defaultQty}</button>` : ""}
+        </div>
+      </div>`;
+    }).join("")}
+  `;
+}
+function renderNutribeesSlot(slotKey){
+  const current = getNutribeesFor(selDate, slotKey);
+  return `
+    ${current ? `
+      <div class="meal-item">
+        <div><div class="nm">${current.name}</div><div class="mc">${Math.round(current.kcal)} kcal · P${round1(current.pro)} C${round1(current.carb)} G${round1(current.fat)} · ${(current.costo||0).toFixed(2)}€</div></div>
+        <button class="del" onclick="removeNutribeesPasto('${selDate}','${slotKey}')">✕</button>
+      </div>
+    ` : `<div class="empty">Nessun piatto scelto</div>`}
+    <input type="text" placeholder="Cerca piatto Nutribees..." value="${nutribeesSearchQuery[slotKey]||''}"
+      oninput="setNutribeesSearch('${slotKey}', this.value)" style="margin-top:10px;margin-bottom:8px;">
+    <div id="nutribeesResults-${slotKey}">${renderNutribeesResultsHtml(slotKey)}</div>
+  `;
+}
+function renderNutribeesResultsHtml(slotKey){
+  const query = (nutribeesSearchQuery[slotKey]||"").toLowerCase();
+  const lib = nutribeesLib().filter(f=>f.name.toLowerCase().includes(query)).slice(0,15);
+  return lib.map(f=>`
+    <div class="foodlib-item">
+      <div><div class="nm">${f.name.replace('Nutribees ','')}</div><div class="mc">${Math.round(f.kcal)}kcal · P${f.pro} C${f.carb} G${f.fat} · ${(f.costo||0).toFixed(2)}€</div></div>
+      <button onclick="setNutribeesPasto('${selDate}','${slotKey}', ${DB.foodLibrary.indexOf(f)})">+ Scegli</button>
+    </div>
+  `).join("") || `<div class="empty">Nessun risultato</div>`;
+}
+function setNutribeesSearch(slotKey, val){
+  nutribeesSearchQuery[slotKey] = val;
+  const el = document.getElementById("nutribeesResults-"+slotKey);
+  if(el) el.innerHTML = renderNutribeesResultsHtml(slotKey);
+}
+function renderDateStrip(){
+  const strip = document.getElementById("dateStrip");
+  if(!strip) return;
+  const dates = [...Array(7)].map((_,i)=>addDays(todayStr(), -(6-i)));
+  strip.innerHTML = dates.map(d=>{
+    const active = d===selDate ? "active":"";
+    const short = new Date(d+"T12:00:00");
+    return `<button class="${active}" onclick="selDate='${d}';render();">${IT_DAYS_SHORT[short.getDay()]} ${short.getDate()}</button>`;
+  }).join("") + `<button onclick="pickCustomDate()">📅</button>`;
+}
+function pickCustomDate(){
+  const v = prompt("Data (AAAA-MM-GG):", selDate);
+  if(v && /^\d{4}-\d{2}-\d{2}$/.test(v)){ selDate=v; render(); }
+}
+function renderMealsList(dateStr, editable){
+  const meals = allMealItemsForDate(dateStr);
+  if(meals.length===0) return `<div class="empty">Nessun pasto registrato</div>`;
+  const bySlot = {};
+  SLOTS.forEach(s=>bySlot[s.k]=[]);
+  bySlot["storico"]=[];
+  meals.forEach(m=>{ (bySlot[m.slot]||(bySlot[m.slot]=[])).push(m); });
+  let html = "";
+  SLOTS.forEach(s=>{
+    const items = bySlot[s.k];
+    if(!items || items.length===0) return;
+    html += `<div class="slot-title">${s.l}</div>`;
+    items.forEach(m=>{
+      html += `<div class="meal-item">
+        <div><div class="nm">${m.name}</div><div class="mc">${Math.round(m.kcal)} kcal · P${round1(m.pro)} C${round1(m.carb)} G${round1(m.fat)} · ${(Number(m.costo)||0).toFixed(2)}€</div></div>
+        ${editable && !m.fisso ? `<button class="del" onclick="removeMeal('${dateStr}','${m.id}')">✕</button>` : ""}
+      </div>`;
+    });
+  });
+  return html || `<div class="empty">Nessun pasto registrato</div>`;
+}
+function renderFoodLibList(){
+  const el = document.getElementById("foodLibList");
+  if(!el) return;
+  const q = (document.getElementById("foodSearch")?.value || "").toLowerCase();
+  const items = DB.foodLibrary.filter(f=>f.name.toLowerCase().includes(q)).slice(0,40);
+  el.innerHTML = items.map((f,idx)=>{
+    const realIdx = DB.foodLibrary.indexOf(f);
+    return `<div class="foodlib-item">
+      <div><div class="nm">${f.name}</div><div class="mc">${f.kcal}kcal · P${f.pro} C${f.carb} G${f.fat} · ${(f.costo||0).toFixed(2)}€</div></div>
+      <button onclick="addLibFood(${realIdx})">+ Aggiungi</button>
+    </div>`;
+  }).join("") || `<div class="empty">Nessun risultato</div>`;
+}
+function addLibFood(idx){
+  const f = DB.foodLibrary[idx];
+  const slot = document.getElementById("slotSelect").value;
+  if(!DB.meals[selDate]) DB.meals[selDate]=[];
+  DB.meals[selDate].push({id:uid(), name:f.name, kcal:f.kcal, pro:f.pro, carb:f.carb, fat:f.fat, costo:f.costo||0, slot});
+  saveDB(); toast(`${f.name} aggiunto`); render();
+}
+function addFreeFood(){
+  const name = document.getElementById("freeName").value.trim();
+  const kcal = Number(document.getElementById("freeKcal").value)||0;
+  const pro = Number(document.getElementById("freePro").value)||0;
+  const carb = Number(document.getElementById("freeCarb").value)||0;
+  const fat = Number(document.getElementById("freeFat").value)||0;
+  const costo = Number(document.getElementById("freeCosto").value)||0;
+  if(!name){ toast("Inserisci un nome"); return; }
+  const slot = document.getElementById("slotSelect").value;
+  if(!DB.meals[selDate]) DB.meals[selDate]=[];
+  DB.meals[selDate].push({id:uid(), name, kcal, pro, carb, fat, costo, slot});
+  if(!DB.foodLibrary.find(f=>f.name.toLowerCase()===name.toLowerCase())){
+    DB.foodLibrary.push({name,kcal,pro,carb,fat,costo});
+  }
+  saveDB(); toast(`${name} aggiunto`); render();
+}
+function removeMeal(dateStr, id){
+  DB.meals[dateStr] = (DB.meals[dateStr]||[]).filter(m=>m.id!==id);
+  saveDB(); render();
+}
+
+/* ============================= TAB: ALLENAMENTO ============================= */
+function renderAllenamento(app){
+  document.getElementById("headerTitle").textContent = "Palestra";
+  document.getElementById("headerSub").textContent = niceDate(selDate);
+
+  const wl = DB.workoutLog[selDate] || {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, useAlt:{}, useAltNote:{}};
+  const giorno = wl.giorno || computeNextGiorno();
+  const info = DB.exdb[giorno];
+
+  app.innerHTML = `
+    <div class="daysel" id="dateStripW"></div>
+    <div class="card">
+      <div class="row between" style="margin-bottom:10px;">
+        <h2 style="margin:0;">Giorno di scheda</h2>
+        ${wl.done ? '<span class="pill ok">Fatto</span>' : wl.skipped ? '<span class="pill bad">Saltato</span>' : '<span class="pill muted">Da fare</span>'}
+      </div>
+      <div class="field">
+        <select id="giornoSelect" onchange="changeGiorno(this.value)">
+          ${[1,2,3,4,5].map(g=>`<option value="${g}" ${g==giorno?"selected":""}>${DB.exdb[g].label}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+
+    <div id="exerciseList"></div>
+
+    <div class="card">
+      <label class="row" style="gap:8px;font-size:14px;font-weight:700;">
+        <input type="checkbox" id="cardioCheck" style="width:auto;" ${wl.cardioDone?"checked":""} onchange="toggleCardio(this.checked)"> Cardio 10 minuti
+      </label>
+    </div>
+
+    <div class="row" style="gap:8px;margin-top:6px;">
+      <button class="btn block" style="background:var(--card2);" onclick="markSkipped()">Segna saltato</button>
+      ${wl.done
+        ? `<button class="btn block" style="border-color:var(--red);color:#F87171;" onclick="markUndone()">Annulla completamento</button>`
+        : `<button class="btn primary block" onclick="markDone()">Segna fatto ✓</button>`}
+    </div>
+  `;
+  renderDateStripW();
+  renderExerciseList(giorno, wl);
+}
+function renderDateStripW(){
+  const strip = document.getElementById("dateStripW");
+  if(!strip) return;
+  const dates = [...Array(7)].map((_,i)=>addDays(todayStr(), -(6-i)));
+  strip.innerHTML = dates.map(d=>{
+    const active = d===selDate ? "active":"";
+    const short = new Date(d+"T12:00:00");
+    const done = DB.workoutLog[d] && DB.workoutLog[d].done;
+    return `<button class="${active}" onclick="selDate='${d}';render();">${done?"✓ ":""}${IT_DAYS_SHORT[short.getDay()]} ${short.getDate()}</button>`;
+  }).join("");
+}
+function ensureWL(){
+  if(!DB.workoutLog[selDate]){
+    DB.workoutLog[selDate] = {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, useAlt:{}, useAltNote:{}};
+  }
+  return DB.workoutLog[selDate];
+}
+function changeGiorno(v){
+  const wl = ensureWL();
+  wl.giorno = Number(v);
+  saveDB(); render();
+}
+function toggleCardio(checked){
+  const wl = ensureWL();
+  wl.cardioDone = checked;
+  saveDB();
+}
+function renderExerciseList(giorno, wl){
+  const el = document.getElementById("exerciseList");
+  const info = DB.exdb[giorno];
+  el.innerHTML = `<h3 class="section">${info.label}</h3>` + info.ex.map(e=>{
+    const prev = lastWorkoutFor(e.k, addDays(selDate,-1));
+    const curKg = (wl.pesi && Array.isArray(wl.pesi[e.k])) ? wl.pesi[e.k] : [];
+    const curReps = (wl.repsLog && Array.isArray(wl.repsLog[e.k])) ? wl.repsLog[e.k] : [];
+    const curAlt = wl.useAlt && wl.useAlt[e.k];
+    const curAltNote = (wl.useAltNote && wl.useAltNote[e.k]) || "";
+    const repLabel = e.repMin===e.repMax ? `${e.repMin}` : `${e.repMin}-${e.repMax}`;
+    const setRows = [...Array(e.sets)].map((_,i)=>{
+      const kgV = curKg[i]!==undefined && curKg[i]!==null ? curKg[i] : "";
+      const repV = curReps[i]!==undefined && curReps[i]!==null ? curReps[i] : "";
+      const kgPh = prev && prev.kg[i]!==undefined && prev.kg[i]!==null && prev.kg[i]!=="" ? prev.kg[i] : "kg";
+      const repPh = prev && prev.reps[i]!==undefined && prev.reps[i]!==null && prev.reps[i]!=="" ? prev.reps[i] : "rip";
+      return `<div class="setrow">
+        <div class="setlabel">Serie ${i+1}</div>
+        <input type="number" inputmode="decimal" step="0.5" placeholder="${kgPh}" value="${kgV}" onchange="setSetField('${e.k}','pesi',${i},this.value)">
+        <span class="x">×</span>
+        <input type="number" inputmode="numeric" placeholder="${repPh}" value="${repV}" onchange="setSetField('${e.k}','repsLog',${i},this.value)">
+      </div>`;
+    }).join("");
+    const prevText = prev
+      ? `<span class="prevlabel">Ultima volta: ${niceDate(prev.date)}</span>`
+      : `<span class="prevlabel">Nessun dato precedente</span>`;
+    return `<div class="exercise">
+      <div class="exname">${e.l}</div>
+      <div class="target">Target: ${e.sets} serie × ${repLabel} ripetizioni</div>
+      <div class="prev">${prevText}</div>
+      <div class="setrows">${setRows}</div>
+      <div class="alt">
+        <input type="checkbox" style="width:auto;" ${curAlt?"checked":""} onchange="setAlt('${e.k}',this.checked)"> Ho usato un esercizio alternativo
+      </div>
+      ${curAlt ? `<div class="field" style="margin-top:6px;"><input type="text" placeholder="Quale esercizio hai usato?" value="${curAltNote}" onchange="setAltNote('${e.k}',this.value)"></div>` : ""}
+    </div>`;
+  }).join("");
+}
+function setSetField(exKey, field, setIdx, val){
+  const wl = ensureWL();
+  if(!wl[field]) wl[field]={};
+  if(!Array.isArray(wl[field][exKey])) wl[field][exKey]=[];
+  wl[field][exKey][setIdx] = val==="" ? "" : Number(val);
+  autoMarkDoneIfData(wl);
+  saveDB();
+  render();
+}
+function setAlt(exKey, checked){
+  const wl = ensureWL();
+  if(!wl.useAlt) wl.useAlt={};
+  wl.useAlt[exKey]=checked;
+  saveDB(); render();
+}
+function setAltNote(exKey, val){
+  const wl = ensureWL();
+  if(!wl.useAltNote) wl.useAltNote={};
+  wl.useAltNote[exKey]=val;
+  saveDB();
+}
+function markDone(){
+  const wl = ensureWL();
+  wl.done = true; wl.skipped = false;
+  saveDB(); toast("Allenamento segnato come fatto"); render();
+}
+function markSkipped(){
+  const wl = ensureWL();
+  wl.done = false; wl.skipped = true;
+  saveDB(); toast("Allenamento segnato come saltato — resta in coda"); render();
+}
+function markUndone(){
+  const wl = ensureWL();
+  wl.done = false; wl.skipped = false;
+  saveDB(); toast("Completamento annullato"); render();
+}
+
+/* ============================= TAB: PROGRESSI ============================= */
+function renderProgressi(app){
+  document.getElementById("headerTitle").textContent = "Progressi";
+  document.getElementById("headerSub").textContent = "Peso, foto e storico";
+
+  const peso = [...DB.pesoLog].sort((a,b)=>a.date.localeCompare(b.date));
+  const last30 = [...Array(30)].map((_,i)=>addDays(todayStr(),-(29-i)));
+  const kcalSeries = last30.map(d=>({x:d, y:dayTotals(d).kcal}));
+  const adherenceWeeks = weeklyAdherence();
+
+  const variazione = peso.length>=2 ? round1(peso[peso.length-1].kg - peso[0].kg) : null;
+  const variazioneColor = variazione===null ? "var(--muted)" : (variazione<=0 ? "var(--green-light)" : "var(--red-light)");
+
+  app.innerHTML = `
+    <div class="card">
+      <h2>Peso corporeo</h2>
+      ${peso.length ? lineChart(peso.map(p=>({x:p.date,y:p.kg})), "#2563EB", DB.targetWeight||null) : `<div class="empty">Nessuna pesata registrata</div>`}
+      ${peso.length ? `<div class="row between" style="margin-top:8px;font-size:12px;color:var(--muted);">
+        <div>Obiettivo: <b style="color:var(--text);">${DB.targetWeight||"—"}kg</b></div>
+        <div>Variazione totale: <b style="color:${variazioneColor};">${variazione===null?"—":(variazione>0?"+":"")+variazione+"kg"}</b></div>
+      </div>` : ""}
+      <div class="row" style="margin-top:10px;gap:8px;">
+        <input type="date" id="pesoDate" value="${todayStr()}">
+        <input type="number" id="pesoVal" placeholder="kg" inputmode="decimal" step="0.1">
+        <button class="btn primary" onclick="addPeso()">+</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Calorie ultimi 30 giorni</h2>
+      ${lineChart(kcalSeries, "#DC2626", DB.targets.kcal)}
+    </div>
+
+    <div class="card">
+      <h2>Aderenza allenamento (ultime settimane)</h2>
+      ${barChart(adherenceWeeks)}
+    </div>
+
+    <div class="card">
+      <h2>Andamento esercizi</h2>
+      <div class="field">
+        <select id="exHistorySelect" onchange="selectedExForHistory=this.value; render();">
+          <option value="">Scegli un esercizio...</option>
+          ${allExerciseDefs().map(e=>`<option value="${e.k}" ${selectedExForHistory===e.k?"selected":""}>${e.l}</option>`).join("")}
+        </select>
+      </div>
+      ${selectedExForHistory ? renderExerciseHistoryHtml(selectedExForHistory) : `<div class="empty">Seleziona un esercizio per vedere peso e ripetizioni registrati sessione per sessione</div>`}
+    </div>
+
+    <div class="card">
+      <h2>Foto progressi</h2>
+      <div class="row" style="margin-bottom:10px;gap:8px;">
+        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;" onchange="addPhoto(this)">
+        <button class="btn primary block" onclick="document.getElementById('photoInput').click()">📷 Aggiungi foto</button>
+      </div>
+      ${renderPhotoGrid()}
+    </div>
+  `;
+}
+function allExerciseDefs(){
+  const out = [];
+  Object.values(DB.exdb).forEach(day=>{
+    day.ex.forEach(e=>{ if(!out.find(x=>x.k===e.k)) out.push(e); });
+  });
+  return out;
+}
+function renderExerciseHistoryHtml(exKey){
+  const dates = Object.keys(DB.workoutLog).filter(d=>{
+    const w = DB.workoutLog[d];
+    return w && w.pesi && Array.isArray(w.pesi[exKey]) && w.pesi[exKey].some(v=>v!=="" && v!==null && v!==undefined);
+  }).sort();
+  if(dates.length===0) return `<div class="empty">Nessun dato registrato per questo esercizio</div>`;
+  const topSetSeries = dates.map(d=>{
+    const nums = (DB.workoutLog[d].pesi[exKey]||[]).filter(v=>v!=="" && v!==null && v!==undefined && !isNaN(v)).map(Number);
+    return {x:d, y: nums.length ? Math.max(...nums) : 0};
+  });
+  const rows = dates.slice().reverse().map(d=>{
+    const kg = DB.workoutLog[d].pesi[exKey]||[];
+    const reps = (DB.workoutLog[d].repsLog && DB.workoutLog[d].repsLog[exKey]) || [];
+    const setsTxt = kg.map((v,i)=>{
+      const kgTxt = (v==="" || v===null || v===undefined) ? "–" : v;
+      const r = reps[i];
+      const repTxt = (r!==undefined && r!==null && r!=="") ? `×${r}` : "";
+      return `${kgTxt}kg${repTxt}`;
+    }).join(", ");
+    return `<tr><td>${niceDate(d)}</td><td>${setsTxt}</td></tr>`;
+  }).join("");
+  return `
+    ${lineChart(topSetSeries, "#16A34A")}
+    <table class="progtable">
+      <thead><tr><th>Data</th><th>Serie (kg×rip)</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+function weeklyAdherence(){
+  const start = DB.programStart;
+  const out = [];
+  let weekStart = start;
+  const now = todayStr();
+  let guard=0;
+  const target = DB.weeklyTarget || 5;
+  while(weekStart <= now && guard<26){
+    guard++;
+    const days = [...Array(7)].map((_,i)=>addDays(weekStart,i));
+    let done=0;
+    days.forEach(d=>{
+      if(d>now) return;
+      if(DB.workoutLog[d] && DB.workoutLog[d].done) done++;
+    });
+    out.push({label:`S${out.length+1}`, done, planned: target});
+    weekStart = addDays(weekStart,7);
+  }
+  return out.slice(-8);
+}
+function lineChart(series, color, targetLine){
+  if(series.length<1) return `<div class="empty">Dati insufficienti</div>`;
+  const W=320,H=110,PAD=8;
+  const ys = series.map(p=>p.y);
+  let min = Math.min(...ys, targetLine||Infinity);
+  let max = Math.max(...ys, targetLine||-Infinity);
+  if(min===max){ min-=1; max+=1; }
+  const stepX = series.length>1 ? (W-2*PAD)/(series.length-1) : 0;
+  const pts = series.map((p,i)=>{
+    const x = PAD + i*stepX;
+    const y = H-PAD - ((p.y-min)/(max-min))*(H-2*PAD);
+    return `${x},${y}`;
+  });
+  let extra = "";
+  if(targetLine){
+    const ty = H-PAD - ((targetLine-min)/(max-min))*(H-2*PAD);
+    extra = `<line x1="${PAD}" y1="${ty}" x2="${W-PAD}" y2="${ty}" stroke="#8B93A7" stroke-width="1" stroke-dasharray="4,3"/>`;
+  }
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}">
+    ${extra}
+    <polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pts.map(p=>`<circle cx="${p.split(",")[0]}" cy="${p.split(",")[1]}" r="2" fill="${color}"/>`).join("")}
+  </svg>
+  <div class="row between" style="font-size:11px;color:var(--muted);margin-top:2px;">
+    <span>${series[0].x.slice(5)}</span><span>${series[series.length-1].x.slice(5)}</span>
+  </div>`;
+}
+function barChart(weeks){
+  if(!weeks.length) return `<div class="empty">Dati insufficienti</div>`;
+  const W=320, H=120, PAD=6, gap=6;
+  const bw = (W-2*PAD-gap*(weeks.length-1))/weeks.length;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H+18}">
+    ${weeks.map((w,i)=>{
+      const pct = w.planned>0 ? w.done/w.planned : 0;
+      const barH = pct*(H-20);
+      const x = PAD+i*(bw+gap);
+      const color = pct>=0.8?"#16A34A":pct>=0.5?"#D97706":"#DC2626";
+      return `<rect x="${x}" y="${H-barH}" width="${bw}" height="${barH}" rx="3" fill="${color}"/>
+        <text x="${x+bw/2}" y="${H+14}" font-size="9" fill="#8B93A7" text-anchor="middle">${w.label}</text>
+        <text x="${x+bw/2}" y="${H-barH-4}" font-size="9" fill="#F3F4F6" text-anchor="middle">${w.done}/${w.planned}</text>`;
+    }).join("")}
+  </svg>`;
+}
+function addPeso(){
+  const d = document.getElementById("pesoDate").value;
+  const v = Number(document.getElementById("pesoVal").value);
+  if(!d || !v){ toast("Inserisci data e peso"); return; }
+  DB.pesoLog = DB.pesoLog.filter(p=>p.date!==d);
+  DB.pesoLog.push({date:d, kg:v});
+  saveDB(); toast("Peso registrato"); render();
+}
+function renderPhotoGrid(){
+  if(!DB.fotoLog.length) return `<div class="empty">Nessuna foto ancora</div>`;
+  const sorted = [...DB.fotoLog].sort((a,b)=>b.date.localeCompare(a.date));
+  return `<div class="photogrid">${sorted.map(f=>
+    f.dataUrl ? `<img src="${f.dataUrl}" onclick="alert('${f.date}${f.note?" — "+f.note.replace(/'/g,""):""}')">` :
+    `<div class="stat" style="aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-size:10px;">${f.date}<br>(no img)</div>`
+  ).join("")}</div>`;
+}
+function addPhoto(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = function(){
+      const maxW = 900;
+      const scale = Math.min(1, maxW/img.width);
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width*scale; canvas.height = img.height*scale;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+      DB.fotoLog.push({id:uid(), date: todayStr(), note:"", dataUrl});
+      saveDB(); toast("Foto salvata"); render();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ============================= TAB: IMPOSTAZIONI ============================= */
+function renderImpostazioni(app){
+  document.getElementById("headerTitle").textContent = "Impostazioni";
+  document.getElementById("headerSub").textContent = "Target, scheda, dati";
+
+  app.innerHTML = `
+    <div class="card settingsgroup">
+      <h2>Target giornalieri</h2>
+      <div class="grid4">
+        <div class="field"><label class="f">Kcal</label><input type="number" id="tKcal" value="${DB.targets.kcal}"></div>
+        <div class="field"><label class="f">Pro (g)</label><input type="number" id="tPro" value="${DB.targets.pro}"></div>
+        <div class="field"><label class="f">Carb (g)</label><input type="number" id="tCarb" value="${DB.targets.carb}"></div>
+        <div class="field"><label class="f">Grassi (g)</label><input type="number" id="tFat" value="${DB.targets.fat}"></div>
+      </div>
+      <div class="field"><label class="f">Peso obiettivo (kg)</label><input type="number" id="tWeight" inputmode="decimal" step="0.5" value="${DB.targetWeight||71}"></div>
+      <button class="btn primary block" onclick="saveTargets()">Salva target</button>
+    </div>
+
+    <div class="card settingsgroup">
+      <h2>Inizio programma</h2>
+      <div class="field"><input type="date" id="programStart" value="${DB.programStart}"></div>
+      <button class="btn block" onclick="saveProgramStart()">Salva</button>
+    </div>
+
+    <div class="card settingsgroup">
+      <h2>Rotazione allenamento</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+        Nessun giorno è legato al calendario. La scheda avanza in coda (1→2→3→4→5→1...) solo quando inserisci
+        peso o ripetizioni di un esercizio — quella sessione viene segnata fatta in automatico e si passa al
+        giorno successivo. Se non inserisci nulla, la prossima volta ti si ripropone lo stesso giorno.
+      </div>
+      <div class="row between" style="margin-bottom:12px;">
+        <div style="font-size:13px;">Prossimo in coda</div>
+        <span class="pill warn">${DB.exdb[computeNextGiorno()].label}</span>
+      </div>
+      <div class="field"><label class="f">Obiettivo sessioni a settimana (solo per il grafico)</label>
+        <input type="number" id="weeklyTarget" value="${DB.weeklyTarget||5}"></div>
+      <button class="btn block" onclick="saveWeeklyTarget()">Salva</button>
+    </div>
+
+    <div class="card settingsgroup">
+      <h2>Scorte Nutribees</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+        Ogni volta che scegli un piatto Nutribees per pranzo o cena, le scorte scendono di uno in automatico.
+        Quando arriva una nuova consegna, aggiorna qui il numero. L'avviso in Home scatta quando le scorte
+        finiscono prima che una nuova consegna possa arrivare.
+      </div>
+      <div class="row between" style="margin-bottom:12px;">
+        <div style="font-size:13px;">Scorte attuali</div>
+        <span class="pill ${nutribeesAvviso().urgente ? "bad" : "ok"}">${DB.nutribeesStock||0} pasti</span>
+      </div>
+      <div class="grid3">
+        <div class="field"><label class="f">Scorte attuali</label><input type="number" id="nbStock" value="${DB.nutribeesStock||0}"></div>
+        <div class="field"><label class="f">Giorni consegna</label><input type="number" id="nbLead" value="${DB.nutribeesLeadDays||7}"></div>
+        <div class="field"><label class="f">Pasti/giorno</label><input type="number" id="nbRate" value="${DB.nutribeesRatePerDay||2}"></div>
+      </div>
+      <button class="btn primary block" onclick="saveNutribeesSettings()">Salva</button>
+    </div>
+
+    <div class="card settingsgroup">
+      <h2>Editor scheda</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">
+        Modifica esercizi, serie e target ripetizioni per ogni giorno. Le modifiche si salvano da sole.
+      </div>
+      <div class="daysel" id="editorDaysel"></div>
+      <div id="editorBody"></div>
+      <button class="btn block" onclick="resetSchedaDefault()" style="margin-top:10px;border-color:var(--red);color:#F87171;">Ripristina scheda di default</button>
+    </div>
+
+    <div class="card settingsgroup">
+      <h2>Editor piano alimentare fisso</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">
+        Modifica le macro per unità, l'unità e la quantità standard di ogni alimento fisso (es. quando correggi
+        un valore con l'etichetta reale del prodotto). Le modifiche si salvano da sole.
+      </div>
+      <div class="daysel" id="editorPastoDaysel"></div>
+      <div id="editorPastoBody"></div>
+      <button class="btn block" onclick="resetPianoFissoDefault()" style="margin-top:10px;border-color:var(--red);color:#F87171;">Ripristina piano fisso di default</button>
+    </div>
+
+    <div class="card settingsgroup">
+      <h2>Backup e dati</h2>
+      <button class="btn block" style="margin-bottom:8px;" onclick="exportData()">⬇️ Esporta dati (JSON)</button>
+      <input type="file" id="importInput" accept="application/json" style="display:none;" onchange="importData(this)">
+      <button class="btn block" style="margin-bottom:8px;" onclick="document.getElementById('importInput').click()">⬆️ Importa export tracker esistente</button>
+      <button class="btn block" style="border-color:var(--red);color:#F87171;" onclick="wipeData()">🗑 Cancella tutti i dati</button>
+    </div>
+
+    <div class="card">
+      <h2>Info</h2>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;">
+        Tutti i dati restano solo su questo telefono (localStorage del browser). Non c'è account, non c'è server:
+        fai backup ogni tanto con "Esporta dati" se cambi telefono o svuoti la cache del browser.
+      </div>
+    </div>
+  `;
+  renderSchedaEditor();
+  renderPianoFissoEditor();
+}
+function saveTargets(){
+  DB.targets = {
+    kcal: Number(document.getElementById("tKcal").value)||0,
+    pro: Number(document.getElementById("tPro").value)||0,
+    carb: Number(document.getElementById("tCarb").value)||0,
+    fat: Number(document.getElementById("tFat").value)||0,
+  };
+  DB.targetWeight = Number(document.getElementById("tWeight").value)||71;
+  saveDB(); toast("Target salvati");
+}
+function saveProgramStart(){
+  DB.programStart = document.getElementById("programStart").value;
+  saveDB(); toast("Data salvata");
+}
+function saveWeeklyTarget(){
+  DB.weeklyTarget = Number(document.getElementById("weeklyTarget").value)||5;
+  saveDB(); toast("Obiettivo salvato"); render();
+}
+function saveNutribeesSettings(){
+  DB.nutribeesStock = Number(document.getElementById("nbStock").value)||0;
+  DB.nutribeesLeadDays = Number(document.getElementById("nbLead").value)||7;
+  DB.nutribeesRatePerDay = Number(document.getElementById("nbRate").value)||2;
+  saveDB(); toast("Scorte Nutribees salvate"); render();
+}
+
+/* ============================= EDITOR SCHEDA ============================= */
+function slugify(s){
+  return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"") || "esercizio";
+}
+function renderSchedaEditor(){
+  const strip = document.getElementById("editorDaysel");
+  const body = document.getElementById("editorBody");
+  if(!strip || !body) return;
+  strip.innerHTML = [1,2,3,4,5].map(g=>
+    `<button class="${g===editorGiorno?'active':''}" onclick="editorGiorno=${g};renderSchedaEditor();">Giorno ${g}</button>`
+  ).join("");
+  const day = DB.exdb[editorGiorno];
+  body.innerHTML = `
+    <div class="field"><label class="f">Titolo giorno</label>
+      <input type="text" value="${day.label}" onchange="updateGiornoLabel(${editorGiorno}, this.value)"></div>
+    ${day.ex.map((e,idx)=>`
+      <div class="exercise" style="margin-bottom:8px;">
+        <div class="field"><label class="f">Nome esercizio</label>
+          <input type="text" value="${e.l}" onchange="updateExerciseField(${editorGiorno},${idx},'l',this.value)"></div>
+        <div class="grid3">
+          <div class="field"><label class="f">Serie</label>
+            <input type="number" value="${e.sets}" onchange="updateExerciseField(${editorGiorno},${idx},'sets',this.value)"></div>
+          <div class="field"><label class="f">Rip. min</label>
+            <input type="number" value="${e.repMin}" onchange="updateExerciseField(${editorGiorno},${idx},'repMin',this.value)"></div>
+          <div class="field"><label class="f">Rip. max</label>
+            <input type="number" value="${e.repMax}" onchange="updateExerciseField(${editorGiorno},${idx},'repMax',this.value)"></div>
+        </div>
+        <button class="btn small" style="border-color:var(--red);color:#F87171;" onclick="removeExercise(${editorGiorno},${idx})">Elimina esercizio</button>
+      </div>
+    `).join("")}
+    <button class="btn block" onclick="addExercise(${editorGiorno})">+ Aggiungi esercizio</button>
+  `;
+}
+function updateGiornoLabel(giorno, val){
+  DB.exdb[giorno].label = val;
+  saveDB();
+}
+function addExercise(giorno){
+  const key = slugify("nuovo-esercizio") + "-" + uid().slice(0,4);
+  DB.exdb[giorno].ex.push({k:key, l:"Nuovo esercizio", sets:3, repMin:10, repMax:12});
+  saveDB(); renderSchedaEditor(); toast("Esercizio aggiunto");
+}
+function updateExerciseField(giorno, idx, field, val){
+  const ex = DB.exdb[giorno].ex[idx];
+  if(!ex) return;
+  if(field==="l") ex.l = val;
+  else if(field==="sets") ex.sets = Math.max(1, Number(val)||1);
+  else if(field==="repMin") ex.repMin = Math.max(1, Number(val)||1);
+  else if(field==="repMax") ex.repMax = Math.max(ex.repMin||1, Number(val)||1);
+  saveDB();
+}
+function removeExercise(giorno, idx){
+  DB.exdb[giorno].ex.splice(idx,1);
+  saveDB(); renderSchedaEditor(); toast("Esercizio eliminato");
+}
+function resetSchedaDefault(){
+  if(!confirm("Ripristinare la scheda di default? Le modifiche fatte qui andranno perse (lo storico di pesi/ripetizioni registrato resta intatto).")) return;
+  DB.exdb = JSON.parse(JSON.stringify(DEFAULT_EXDB));
+  saveDB(); toast("Scheda ripristinata"); render();
+}
+
+/* ============================= EDITOR PIANO FISSO ============================= */
+const SLOT_LABELS = {
+  "colazione":"Colazione", "spuntino-am":"Spuntino mattina",
+  "spuntino-pm":"Spuntino pomeriggio", "spuntino-sera":"Spuntino sera"
+};
+function renderPianoFissoEditor(){
+  const strip = document.getElementById("editorPastoDaysel");
+  const body = document.getElementById("editorPastoBody");
+  if(!strip || !body) return;
+  const slots = Object.keys(DB.pianoFisso);
+  strip.innerHTML = slots.map(s=>
+    `<button class="${s===editorPastoSlot?'active':''}" onclick="editorPastoSlot='${s}';renderPianoFissoEditor();">${SLOT_LABELS[s]||s}</button>`
+  ).join("");
+  const items = DB.pianoFisso[editorPastoSlot] || [];
+  body.innerHTML = items.map((it,idx)=>`
+    <div class="exercise" style="margin-bottom:8px;">
+      <div class="field"><label class="f">Nome</label>
+        <input type="text" value="${it.l}" onchange="updatePianoFissoField('${editorPastoSlot}',${idx},'l',this.value)"></div>
+      <div class="grid2">
+        <div class="field"><label class="f">Unità (es. uovo, porzione)</label>
+          <input type="text" value="${it.unit}" onchange="updatePianoFissoField('${editorPastoSlot}',${idx},'unit',this.value)"></div>
+        <div class="field"><label class="f">Quantità standard</label>
+          <input type="number" step="0.5" value="${it.defaultQty}" onchange="updatePianoFissoField('${editorPastoSlot}',${idx},'defaultQty',this.value)"></div>
+      </div>
+      <div class="grid4">
+        <div class="field"><label class="f">Kcal/unità</label>
+          <input type="number" step="0.1" value="${it.kcalU}" onchange="updatePianoFissoField('${editorPastoSlot}',${idx},'kcalU',this.value)"></div>
+        <div class="field"><label class="f">Pro/unità</label>
+          <input type="number" step="0.1" value="${it.proU}" onchange="updatePianoFissoField('${editorPastoSlot}',${idx},'proU',this.value)"></div>
+        <div class="field"><label class="f">Carb/unità</label>
+          <input type="number" step="0.1" value="${it.carbU}" onchange="updatePianoFissoField('${editorPastoSlot}',${idx},'carbU',this.value)"></div>
+        <div class="field"><label class="f">Grassi/unità</label>
+          <input type="number" step="0.1" value="${it.fatU}" onchange="updatePianoFissoField('${editorPastoSlot}',${idx},'fatU',this.value)"></div>
+      </div>
+      <div class="field"><label class="f">Costo/unità (€)</label>
+        <input type="number" step="0.01" value="${it.costoU||0}" onchange="updatePianoFissoField('${editorPastoSlot}',${idx},'costoU',this.value)"></div>
+      <button class="btn small" style="border-color:var(--red);color:#F87171;" onclick="removePianoFissoItem('${editorPastoSlot}',${idx})">Elimina alimento</button>
+    </div>
+  `).join("");
+  body.innerHTML += `<button class="btn block" onclick="addPianoFissoItem('${editorPastoSlot}')">+ Aggiungi alimento</button>`;
+  const arc = (DB.pianoFissoArchivio||[]).filter(a=>a.slot===editorPastoSlot);
+  if(arc.length){
+    const esc = v => String(v==null?"":v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+    body.innerHTML += `
+      <div class="slot-title" style="margin-top:20px;">Archivio</div>
+      <div class="muted" style="font-size:12px;margin-bottom:10px;line-height:1.45;">
+        Alimenti non pi\u00f9 nel piano, ma presenti in giorni gi\u00e0 registrati. Restano qui per non
+        cancellare lo storico: correggi i valori e i giorni passati si aggiornano.
+      </div>` + arc.map(it=>`
+      <div class="exercise" style="margin-bottom:8px;border-style:dashed;">
+        <div class="field"><label class="f">Nome</label>
+          <input type="text" value="${esc(it.l)}" onchange="updateArchivioField('${it.id}','${editorPastoSlot}','l',this.value)"></div>
+        <div class="grid4">
+          <div class="field"><label class="f">Kcal/unit\u00e0</label>
+            <input type="number" step="0.1" value="${it.kcalU}" onchange="updateArchivioField('${it.id}','${editorPastoSlot}','kcalU',this.value)"></div>
+          <div class="field"><label class="f">Pro/unit\u00e0</label>
+            <input type="number" step="0.1" value="${it.proU}" onchange="updateArchivioField('${it.id}','${editorPastoSlot}','proU',this.value)"></div>
+          <div class="field"><label class="f">Carb/unit\u00e0</label>
+            <input type="number" step="0.1" value="${it.carbU}" onchange="updateArchivioField('${it.id}','${editorPastoSlot}','carbU',this.value)"></div>
+          <div class="field"><label class="f">Grassi/unit\u00e0</label>
+            <input type="number" step="0.1" value="${it.fatU}" onchange="updateArchivioField('${it.id}','${editorPastoSlot}','fatU',this.value)"></div>
+        </div>
+        <div class="field"><label class="f">Costo/unit\u00e0 (\u20ac)</label>
+          <input type="number" step="0.01" value="${it.costoU||0}" onchange="updateArchivioField('${it.id}','${editorPastoSlot}','costoU',this.value)"></div>
+        <button class="btn small" onclick="ripristinaArchivio('${it.id}','${editorPastoSlot}')">Rimetti nel piano</button>
+      </div>`).join("");
+  }
+}
+function updatePianoFissoField(slot, idx, field, val){
+  const it = DB.pianoFisso[slot][idx];
+  if(!it) return;
+  if(field==="l" || field==="unit") it[field] = val;
+  else it[field] = Number(val)||0;
+  it.customized = true;
+  saveDB();
+}
+function addPianoFissoItem(slot){
+  DB.pianoFisso[slot].push({id:"custom-"+uid(), l:"Nuovo alimento", unit:"porzione", kcalU:0, proU:0, carbU:0, fatU:0, defaultQty:1, customized:true});
+  saveDB(); renderPianoFissoEditor(); toast("Alimento aggiunto");
+}
+function removePianoFissoItem(slot, idx){
+  const it = DB.pianoFisso[slot][idx];
+  if(!it) return;
+  if(!confirm(`Togliere "${it.l}" dal piano?\n\nLo storico dei giorni gi\u00e0 registrati resta intatto: l'alimento finisce in Archivio, in fondo a questa pagina.`)) return;
+  if(!DB.pianoFissoArchivio) DB.pianoFissoArchivio = [];
+  if(!DB.pianoFissoArchivio.some(a=>a.id===it.id && a.slot===slot)){
+    DB.pianoFissoArchivio.push(Object.assign({}, it, {slot, archiviato:true}));
+  }
+  DB.pianoFisso[slot].splice(idx,1);
+  saveDB(); renderPianoFissoEditor(); toast("Alimento archiviato");
+}
+function updateArchivioField(id, slot, field, val){
+  const it = (DB.pianoFissoArchivio||[]).find(a=>a.id===id && a.slot===slot);
+  if(!it) return;
+  if(field==="l" || field==="unit") it[field] = val;
+  else it[field] = Number(val)||0;
+  saveDB();
+  if(field!=="l") renderPianoFissoEditor();
+}
+function ripristinaArchivio(id, slot){
+  const i = (DB.pianoFissoArchivio||[]).findIndex(a=>a.id===id && a.slot===slot);
+  if(i<0) return;
+  const it = DB.pianoFissoArchivio.splice(i,1)[0];
+  delete it.archiviato; delete it.slot;
+  if(!DB.pianoFisso[slot]) DB.pianoFisso[slot] = [];
+  DB.pianoFisso[slot].push(it);
+  saveDB(); renderPianoFissoEditor(); toast("Rimesso nel piano");
+}
+function resetPianoFissoDefault(){
+  if(!confirm("Ripristinare il piano fisso di default? Le modifiche fatte qui andranno perse (lo storico dei pasti registrati resta intatto).")) return;
+  DB.pianoFisso = JSON.parse(JSON.stringify(DEFAULT_PIANO_FISSO));
+  saveDB(); toast("Piano fisso ripristinato"); render();
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `hustler-tracker-backup-${todayStr()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function importData(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const old = JSON.parse(ev.target.result);
+
+      // Backup nativo dell'app (creato con "Esporta dati" da questa stessa app):
+      // ripristino completo e diretto, nessuna perdita di foto/ripetizioni/scheda personalizzata.
+      if(old.version===1 && old.exdb){
+        DB = Object.assign(defaultDB(), old);
+        saveDB();
+        toast("Backup ripristinato");
+        render();
+        return;
+      }
+
+      // Altrimenti: formato del vecchio export del tracker originale (merge parziale, legacy)
+      if(old.targets) DB.targets = old.targets;
+      if(old.programStart) DB.programStart = old.programStart;
+      if(old.meals){
+        Object.keys(old.meals).forEach(d=>{
+          DB.meals[d] = (old.meals[d]||[]).map(m=>({id:uid(), name:m.name, kcal:m.kcal, pro:m.pro, carb:m.carb, fat:m.fat, slot:m.slot||"storico"}));
+        });
+      }
+      if(old.workoutLog){
+        Object.keys(old.workoutLog).forEach(d=>{
+          const w = old.workoutLog[d];
+          const pesi = {};
+          Object.keys(w.pesi||{}).forEach(k=>{
+            pesi[k] = Array.isArray(w.pesi[k]) ? w.pesi[k] : [w.pesi[k]];
+          });
+          const repsLog = {};
+          Object.keys(w.reps||{}).forEach(k=>{
+            repsLog[k] = Array.isArray(w.reps[k]) ? w.reps[k] : [w.reps[k]];
+          });
+          DB.workoutLog[d] = {
+            giorno: w.giorno||1, done: !!w.done, skipped: !!w.skipped, cardioDone: !!w.cardioDone,
+            pesi, repsLog, useAlt: w.useAlt||{}, useAltNote: {}
+          };
+        });
+      }
+      if(old.sonnoLog) Object.assign(DB.sonnoLog, old.sonnoLog);
+      if(old.pesoLog && Array.isArray(old.pesoLog)) DB.pesoLog = DB.pesoLog.concat(old.pesoLog);
+      if(old.fotoLogMeta && Array.isArray(old.fotoLogMeta)){
+        old.fotoLogMeta.forEach(f=>{
+          DB.fotoLog.push({id:uid(), date:f.date, note:f.note||"", dataUrl:null});
+        });
+      }
+      saveDB();
+      toast("Import completato");
+      render();
+    }catch(e){
+      alert("File non valido: "+e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+function wipeData(){
+  if(!confirm("Cancellare TUTTI i dati salvati su questo telefono? Non si può annullare.")) return;
+  localStorage.removeItem(STORE_KEY);
+  DB = defaultDB();
+  toast("Dati cancellati");
+  render();
+}
+
+/* ============================= INIT ============================= */
+render();
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
