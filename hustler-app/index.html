@@ -132,6 +132,11 @@
   .setrow .setlabel{width:56px;flex:0 0 auto;font-size:12px;color:var(--muted);font-weight:700;}
   .setrow input{flex:1;min-width:0;padding:8px 4px;text-align:center;}
   .setrow .x{color:var(--muted);font-size:12px;flex:0 0 auto;}
+  .setrow .rirbox{flex:0 0 62px;max-width:62px;font-weight:700;}
+  .setrow .rirbox::placeholder{font-weight:400;font-size:11px;}
+  .setrow .rirbox.rir2{border-color:#3d7186;color:#79aec4;}
+  .setrow .rirbox.rir1{border-color:#a76a12;color:#dda247;}
+  .setrow .rirbox.rir0{border-color:#c23a1d;color:#fff;background:#c23a1d;}
   .exercise .alt{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);}
   .daysel{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px;}
   .daysel button{flex:0 0 auto;background:var(--card2);border:1px solid var(--border);color:var(--muted);
@@ -674,7 +679,8 @@ function lastWorkoutFor(exKey, beforeDate){
     const kgArr = w && w.pesi && w.pesi[exKey];
     if(Array.isArray(kgArr) && kgArr.some(v=>v!=="" && v!==undefined && v!==null)){
       const repArr = (w.repsLog && w.repsLog[exKey]) || [];
-      return {date:d, kg:kgArr, reps:repArr};
+      const rirArr = (w.rirLog && w.rirLog[exKey]) || [];
+      return {date:d, kg:kgArr, reps:repArr, rir:rirArr};
     }
   }
   return null;
@@ -1185,7 +1191,7 @@ function renderAllenamento(app){
   document.getElementById("headerTitle").textContent = "Palestra";
   document.getElementById("headerSub").textContent = niceDate(selDate);
 
-  const wl = DB.workoutLog[selDate] || {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, useAlt:{}, useAltNote:{}};
+  const wl = DB.workoutLog[selDate] || {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, useAlt:{}, useAltNote:{}};
   const giorno = wl.giorno || computeNextGiorno();
   const info = DB.exdb[giorno];
 
@@ -1234,7 +1240,7 @@ function renderDateStripW(){
 }
 function ensureWL(){
   if(!DB.workoutLog[selDate]){
-    DB.workoutLog[selDate] = {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, useAlt:{}, useAltNote:{}};
+    DB.workoutLog[selDate] = {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, useAlt:{}, useAltNote:{}};
   }
   return DB.workoutLog[selDate];
 }
@@ -1255,6 +1261,7 @@ function renderExerciseList(giorno, wl){
     const prev = lastWorkoutFor(e.k, addDays(selDate,-1));
     const curKg = (wl.pesi && Array.isArray(wl.pesi[e.k])) ? wl.pesi[e.k] : [];
     const curReps = (wl.repsLog && Array.isArray(wl.repsLog[e.k])) ? wl.repsLog[e.k] : [];
+    const curRir = (wl.rirLog && Array.isArray(wl.rirLog[e.k])) ? wl.rirLog[e.k] : [];
     const curAlt = wl.useAlt && wl.useAlt[e.k];
     const curAltNote = (wl.useAltNote && wl.useAltNote[e.k]) || "";
     const repLabel = e.repMin===e.repMax ? `${e.repMin}` : `${e.repMin}-${e.repMax}`;
@@ -1263,11 +1270,14 @@ function renderExerciseList(giorno, wl){
       const repV = curReps[i]!==undefined && curReps[i]!==null ? curReps[i] : "";
       const kgPh = prev && prev.kg[i]!==undefined && prev.kg[i]!==null && prev.kg[i]!=="" ? prev.kg[i] : "kg";
       const repPh = prev && prev.reps[i]!==undefined && prev.reps[i]!==null && prev.reps[i]!=="" ? prev.reps[i] : "rip";
+      const rirV = curRir[i]!==undefined && curRir[i]!==null ? curRir[i] : "";
+      const rirCls = rirV===0 || rirV==="0" ? "rir0" : (rirV===1 || rirV==="1" ? "rir1" : (rirV===2 || rirV==="2" ? "rir2" : ""));
       return `<div class="setrow">
         <div class="setlabel">Serie ${i+1}</div>
         <input type="number" inputmode="decimal" step="0.5" placeholder="${kgPh}" value="${kgV}" onchange="setSetField('${e.k}','pesi',${i},this.value)">
         <span class="x">×</span>
         <input type="number" inputmode="numeric" placeholder="${repPh}" value="${repV}" onchange="setSetField('${e.k}','repsLog',${i},this.value)">
+        <input class="rirbox ${rirCls}" type="number" inputmode="numeric" min="0" max="5" placeholder="RIR" value="${rirV}" onchange="setSetField('${e.k}','rirLog',${i},this.value)">
       </div>`;
     }).join("");
     const prevText = prev
@@ -1346,9 +1356,15 @@ function renderProgressi(app){
       <div class="row" style="margin-top:10px;gap:8px;">
         <input type="date" id="pesoDate" value="${todayStr()}">
         <input type="number" id="pesoVal" placeholder="kg" inputmode="decimal" step="0.1">
+        <input type="number" id="pesoBf" placeholder="% grasso" inputmode="decimal" step="0.1">
         <button class="btn primary" onclick="addPeso()">+</button>
       </div>
+      <div class="muted" style="font-size:11px;margin-top:6px;line-height:1.4;">
+        La percentuale di grasso è facoltativa. Misurala sempre nelle stesse condizioni:
+        mattina, a digiuno, dopo il bagno, prima di bere.
+      </div>
     </div>
+    ${renderComposizione(peso)}
 
     <div class="card">
       <h2>Calorie ultimi 30 giorni</h2>
@@ -1401,11 +1417,14 @@ function renderExerciseHistoryHtml(exKey){
   const rows = dates.slice().reverse().map(d=>{
     const kg = DB.workoutLog[d].pesi[exKey]||[];
     const reps = (DB.workoutLog[d].repsLog && DB.workoutLog[d].repsLog[exKey]) || [];
+    const rirs = (DB.workoutLog[d].rirLog && DB.workoutLog[d].rirLog[exKey]) || [];
     const setsTxt = kg.map((v,i)=>{
       const kgTxt = (v==="" || v===null || v===undefined) ? "–" : v;
       const r = reps[i];
       const repTxt = (r!==undefined && r!==null && r!=="") ? `×${r}` : "";
-      return `${kgTxt}kg${repTxt}`;
+      const rr = rirs[i];
+      const rirTxt = (rr!==undefined && rr!==null && rr!=="") ? ` @${rr}` : "";
+      return `${kgTxt}kg${repTxt}${rirTxt}`;
     }).join(", ");
     return `<tr><td>${niceDate(d)}</td><td>${setsTxt}</td></tr>`;
   }).join("");
@@ -1483,10 +1502,48 @@ function barChart(weeks){
 function addPeso(){
   const d = document.getElementById("pesoDate").value;
   const v = Number(document.getElementById("pesoVal").value);
+  const bfEl = document.getElementById("pesoBf");
+  const bf = bfEl && bfEl.value!=="" ? Number(bfEl.value) : null;
   if(!d || !v){ toast("Inserisci data e peso"); return; }
+  if(bf!==null && (isNaN(bf) || bf<3 || bf>60)){ toast("Percentuale di grasso non valida"); return; }
   DB.pesoLog = DB.pesoLog.filter(p=>p.date!==d);
-  DB.pesoLog.push({date:d, kg:v});
-  saveDB(); toast("Peso registrato"); render();
+  const rec = {date:d, kg:v};
+  if(bf!==null) rec.bf = bf;
+  DB.pesoLog.push(rec);
+  saveDB(); toast(bf!==null ? "Peso e composizione registrati" : "Peso registrato"); render();
+}
+// Massa magra e massa grassa: il numero assoluto della bilancia impedenziometrica
+// vale poco, il trend nelle stesse condizioni vale molto.
+function renderComposizione(peso){
+  const conBf = peso.filter(p=>typeof p.bf === "number");
+  if(!conBf.length) return "";
+  const ultimo = conBf[conBf.length-1];
+  const primo = conBf[0];
+  const fm = k => round1(k.kg * k.bf / 100);
+  const lm = k => round1(k.kg - k.kg * k.bf / 100);
+  const dFm = conBf.length>1 ? round1(fm(ultimo)-fm(primo)) : null;
+  const dLm = conBf.length>1 ? round1(lm(ultimo)-lm(primo)) : null;
+  const seg = (v,buonoSeNegativo) => v===null ? "var(--muted)"
+    : (buonoSeNegativo ? (v<=0?"var(--green-light)":"var(--red-light)")
+                       : (v>=0?"var(--green-light)":"var(--red-light)"));
+  const sgn = v => (v>0?"+":"")+v;
+  return `
+    <div class="card">
+      <h2>Composizione corporea</h2>
+      <div class="grid3">
+        <div class="stat"><div class="n">${lm(ultimo)}kg</div><div class="l">massa magra</div></div>
+        <div class="stat"><div class="n">${fm(ultimo)}kg</div><div class="l">massa grassa</div></div>
+        <div class="stat"><div class="n">${ultimo.bf}%</div><div class="l">grasso corporeo</div></div>
+      </div>
+      ${conBf.length>1 ? `<div class="row between" style="margin-top:10px;font-size:12px;color:var(--muted);">
+        <div>Grassa: <b style="color:${seg(dFm,true)};">${sgn(dFm)}kg</b></div>
+        <div>Magra: <b style="color:${seg(dLm,false)};">${sgn(dLm)}kg</b></div>
+        <div>dal ${niceDate(primo.date)}</div>
+      </div>` : `<div class="muted" style="font-size:11.5px;margin-top:8px;">
+        Prima misurazione registrata. Il dato utile è il confronto: serve almeno una seconda rilevazione.
+      </div>`}
+      ${conBf.length>1 ? lineChart(conBf.map(p=>({x:p.date,y:p.bf})), "#D4A24C", null) : ""}
+    </div>`;
 }
 function renderPhotoGrid(){
   if(!DB.fotoLog.length) return `<div class="empty">Nessuna foto ancora</div>`;
