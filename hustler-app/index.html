@@ -132,7 +132,9 @@
   .setrow .setlabel{width:56px;flex:0 0 auto;font-size:12px;color:var(--muted);font-weight:700;}
   .setrow input{flex:1;min-width:0;padding:8px 4px;text-align:center;}
   .setrow .x{color:var(--muted);font-size:12px;flex:0 0 auto;}
-  .setrow .rirbox{flex:0 0 62px;max-width:62px;font-weight:700;}
+  .setrow .rirbox{flex:0 0 66px;max-width:66px;font-weight:700;}
+  .setrow .rirbox.fuoritarget{box-shadow:0 0 0 1px var(--gold-light) inset;}
+  .target .rirtgt{color:var(--gold-light);}
   .setrow .rirbox::placeholder{font-weight:400;font-size:11px;}
   .setrow .rirbox.rir2{border-color:#3d7186;color:#79aec4;}
   .setrow .rirbox.rir1{border-color:#a76a12;color:#dda247;}
@@ -197,44 +199,44 @@ const SLOTS = [
 
 const DEFAULT_EXDB = {
   1: {label:"Giorno 1 — Petto A", ex:[
-    {k:"panca-piana", l:"Panca piana", sets:4, repMin:6, repMax:8},
-    {k:"panca-inclinata-man", l:"Panca inclinata manubri", sets:3, repMin:8, repMax:10},
-    {k:"chest-fly", l:"Chest fly ai cavi", sets:3, repMin:12, repMax:15},
-    {k:"dip-petto", l:"Dip petto", sets:3, repMin:8, repMax:12},
-    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+    {k:"panca-piana", l:"Panca piana", sets:4, repMin:6, repMax:8, rir:[2,2,1,1]},
+    {k:"panca-inclinata-man", l:"Panca inclinata manubri", sets:3, repMin:8, repMax:10, rir:[2,1,1]},
+    {k:"chest-fly", l:"Chest fly ai cavi", sets:3, repMin:12, repMax:15, rir:[2,1,0]},
+    {k:"dip-petto", l:"Dip petto", sets:3, repMin:8, repMax:12, rir:[2,1,1]},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20, rir:[1,1,0]},
   ]},
   2: {label:"Giorno 2 — Schiena A", ex:[
-    {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10},
-    {k:"rematore-bil", l:"Rematore bilanciere", sets:4, repMin:8, repMax:10},
-    {k:"cable-row", l:"Cable row presa stretta", sets:3, repMin:10, repMax:12},
-    {k:"face-pull", l:"Face pull", sets:3, repMin:15, repMax:15},
-    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+    {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10, rir:[2,2,1,1]},
+    {k:"rematore-bil", l:"Rematore bilanciere", sets:4, repMin:8, repMax:10, rir:[2,2,1,1]},
+    {k:"cable-row", l:"Cable row presa stretta", sets:3, repMin:10, repMax:12, rir:[2,1,1]},
+    {k:"face-pull", l:"Face pull", sets:3, repMin:15, repMax:15, rir:[2,1,0]},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20, rir:[1,1,0]},
   ]},
   3: {label:"Giorno 3 — Gambe A (Quadricipiti)", ex:[
-    {k:"squat", l:"Squat", sets:4, repMin:8, repMax:10},
-    {k:"leg-press", l:"Leg press", sets:3, repMin:10, repMax:12},
-    {k:"leg-extension", l:"Leg extension", sets:3, repMin:12, repMax:15},
-    {k:"affondi", l:"Affondi manubri (a gamba)", sets:3, repMin:10, repMax:10},
-    {k:"calf-raise", l:"Calf raise in piedi", sets:3, repMin:15, repMax:20},
-    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+    {k:"squat", l:"Squat", sets:4, repMin:8, repMax:10, rir:[2,2,2,1]},
+    {k:"leg-press", l:"Leg press", sets:3, repMin:10, repMax:12, rir:[2,1,1]},
+    {k:"leg-extension", l:"Leg extension", sets:3, repMin:12, repMax:15, rir:[2,1,0]},
+    {k:"affondi", l:"Affondi manubri (a gamba)", sets:3, repMin:10, repMax:10, rir:[2,1,1]},
+    {k:"calf-raise", l:"Calf raise in piedi", sets:3, repMin:15, repMax:20, rir:[1,1,0]},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20, rir:[1,1,0]},
   ]},
   4: {label:"Giorno 4 — Petto B + Schiena B", ex:[
-    {k:"panca-inclinata-bil", l:"Panca inclinata bilanciere", sets:3, repMin:8, repMax:10},
-    {k:"croci-cavi", l:"Croci ai cavi", sets:2, repMin:12, repMax:15},
-    {k:"lat-stretta", l:"Lat machine presa stretta", sets:3, repMin:10, repMax:12},
-    {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15},
-    {k:"rematore-man-1b", l:"Rematore manubrio a un braccio", sets:2, repMin:12, repMax:15},
-    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+    {k:"panca-inclinata-bil", l:"Panca inclinata bilanciere", sets:3, repMin:8, repMax:10, rir:[2,1,1]},
+    {k:"croci-cavi", l:"Croci ai cavi", sets:2, repMin:12, repMax:15, rir:[1,0]},
+    {k:"lat-stretta", l:"Lat machine presa stretta", sets:3, repMin:10, repMax:12, rir:[2,1,1]},
+    {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15, rir:[1,0]},
+    {k:"rematore-man-1b", l:"Rematore manubrio a un braccio", sets:2, repMin:12, repMax:15, rir:[1,0]},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20, rir:[1,1,0]},
   ]},
   5: {label:"Giorno 5 — Gambe B + Spalle/Braccia", ex:[
-    {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10},
-    {k:"leg-curl", l:"Leg curl", sets:4, repMin:10, repMax:12},
-    {k:"calf-raise-seduto", l:"Calf raise seduto", sets:3, repMin:15, repMax:20},
-    {k:"shoulder-press", l:"Shoulder press manubri", sets:3, repMin:10, repMax:10},
-    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15},
-    {k:"curl-ez", l:"Curl EZ", sets:2, repMin:12, repMax:12},
-    {k:"tricep-pushdown", l:"Push-down tricipiti", sets:2, repMin:12, repMax:12},
-    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20},
+    {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10, rir:[2,2,1,1]},
+    {k:"leg-curl", l:"Leg curl", sets:4, repMin:10, repMax:12, rir:[2,2,1,1]},
+    {k:"calf-raise-seduto", l:"Calf raise seduto", sets:3, repMin:15, repMax:20, rir:[1,1,0]},
+    {k:"shoulder-press", l:"Shoulder press manubri", sets:3, repMin:10, repMax:10, rir:[2,1,1]},
+    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15, rir:[1,1,0]},
+    {k:"curl-ez", l:"Curl EZ", sets:2, repMin:12, repMax:12, rir:[1,0]},
+    {k:"tricep-pushdown", l:"Push-down tricipiti", sets:2, repMin:12, repMax:12, rir:[1,0]},
+    {k:"ab-crunch-machine", l:"Abdominal crunch (macchina)", sets:3, repMin:15, repMax:20, rir:[1,1,0]},
   ]},
 };
 
@@ -402,6 +404,7 @@ let DB = loadDB();
 reconcileFoodLibrary();
 reconcilePianoFisso();
 migrateFissoOrfani();
+reconcileExdbRir();
 function loadDB(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
@@ -516,6 +519,21 @@ function migrateFissoOrfani(){
         });
         changed = true;
       });
+    });
+  });
+  if(changed) saveDB();
+}
+// Porta i target di RIR anche sugli exdb già salvati in locale, senza toccare
+// etichette, serie o ripetizioni che l'utente può aver personalizzato.
+function reconcileExdbRir(){
+  let changed=false;
+  Object.keys(DEFAULT_EXDB).forEach(g=>{
+    if(!DB.exdb || !DB.exdb[g] || !Array.isArray(DB.exdb[g].ex)) return;
+    DEFAULT_EXDB[g].ex.forEach(def=>{
+      const cur = DB.exdb[g].ex.find(x=>x.k===def.k);
+      if(cur && def.rir && (!Array.isArray(cur.rir) || cur.rir.length!==def.rir.length)){
+        cur.rir = def.rir.slice(); changed=true;
+      }
     });
   });
   if(changed) saveDB();
@@ -1265,6 +1283,8 @@ function renderExerciseList(giorno, wl){
     const curAlt = wl.useAlt && wl.useAlt[e.k];
     const curAltNote = (wl.useAltNote && wl.useAltNote[e.k]) || "";
     const repLabel = e.repMin===e.repMax ? `${e.repMin}` : `${e.repMin}-${e.repMax}`;
+    const rirTarget = Array.isArray(e.rir) ? e.rir : [];
+    const rirLabel = rirTarget.length ? ` · RIR <b class="rirtgt">${rirTarget.join(" / ")}</b>` : "";
     const setRows = [...Array(e.sets)].map((_,i)=>{
       const kgV = curKg[i]!==undefined && curKg[i]!==null ? curKg[i] : "";
       const repV = curReps[i]!==undefined && curReps[i]!==null ? curReps[i] : "";
@@ -1272,12 +1292,14 @@ function renderExerciseList(giorno, wl){
       const repPh = prev && prev.reps[i]!==undefined && prev.reps[i]!==null && prev.reps[i]!=="" ? prev.reps[i] : "rip";
       const rirV = curRir[i]!==undefined && curRir[i]!==null ? curRir[i] : "";
       const rirCls = rirV===0 || rirV==="0" ? "rir0" : (rirV===1 || rirV==="1" ? "rir1" : (rirV===2 || rirV==="2" ? "rir2" : ""));
+      const rirPh = rirTarget[i]!==undefined ? "RIR "+rirTarget[i] : "RIR";
+      const fuori = rirV!=="" && rirTarget[i]!==undefined && Number(rirV)!==Number(rirTarget[i]) ? " fuoritarget" : "";
       return `<div class="setrow">
         <div class="setlabel">Serie ${i+1}</div>
         <input type="number" inputmode="decimal" step="0.5" placeholder="${kgPh}" value="${kgV}" onchange="setSetField('${e.k}','pesi',${i},this.value)">
         <span class="x">×</span>
         <input type="number" inputmode="numeric" placeholder="${repPh}" value="${repV}" onchange="setSetField('${e.k}','repsLog',${i},this.value)">
-        <input class="rirbox ${rirCls}" type="number" inputmode="numeric" min="0" max="5" placeholder="RIR" value="${rirV}" onchange="setSetField('${e.k}','rirLog',${i},this.value)">
+        <input class="rirbox ${rirCls}${fuori}" type="number" inputmode="numeric" min="0" max="5" placeholder="${rirPh}" value="${rirV}" onchange="setSetField('${e.k}','rirLog',${i},this.value)">
       </div>`;
     }).join("");
     const prevText = prev
@@ -1285,7 +1307,7 @@ function renderExerciseList(giorno, wl){
       : `<span class="prevlabel">Nessun dato precedente</span>`;
     return `<div class="exercise">
       <div class="exname">${e.l}</div>
-      <div class="target">Target: ${e.sets} serie × ${repLabel} ripetizioni</div>
+      <div class="target">Target: ${e.sets} serie × ${repLabel} ripetizioni${rirLabel}</div>
       <div class="prev">${prevText}</div>
       <div class="setrows">${setRows}</div>
       <div class="alt">
