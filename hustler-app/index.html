@@ -132,6 +132,12 @@
   .setrow .setlabel{width:56px;flex:0 0 auto;font-size:12px;color:var(--muted);font-weight:700;}
   .setrow input{flex:1;min-width:0;padding:8px 4px;text-align:center;}
   .setrow .x{color:var(--muted);font-size:12px;flex:0 0 auto;}
+  .setrow.warm input{opacity:.62;border-style:dashed;}
+  .setrow.warm .setlabel{color:var(--muted);font-weight:600;font-size:11px;opacity:.8;}
+  .setrow .warmtag{flex:0 0 66px;max-width:66px;text-align:center;font-size:9.5px;
+    letter-spacing:.04em;color:var(--muted);opacity:.7;}
+  .setrows .warmsep{font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:8px 0 2px;padding-top:8px;border-top:1px dashed var(--border);}
   .setrow .rirbox{flex:0 0 66px;max-width:66px;font-weight:700;}
   .setrow .rirbox.fuoritarget{box-shadow:0 0 0 1px var(--gold-light) inset;}
   .target .rirtgt{color:var(--gold-light);}
@@ -1209,7 +1215,7 @@ function renderAllenamento(app){
   document.getElementById("headerTitle").textContent = "Palestra";
   document.getElementById("headerSub").textContent = niceDate(selDate);
 
-  const wl = DB.workoutLog[selDate] || {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, useAlt:{}, useAltNote:{}};
+  const wl = DB.workoutLog[selDate] || {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, warmKg:{}, warmReps:{}, useAlt:{}, useAltNote:{}};
   const giorno = wl.giorno || computeNextGiorno();
   const info = DB.exdb[giorno];
 
@@ -1258,7 +1264,7 @@ function renderDateStripW(){
 }
 function ensureWL(){
   if(!DB.workoutLog[selDate]){
-    DB.workoutLog[selDate] = {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, useAlt:{}, useAltNote:{}};
+    DB.workoutLog[selDate] = {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, warmKg:{}, warmReps:{}, useAlt:{}, useAltNote:{}};
   }
   return DB.workoutLog[selDate];
 }
@@ -1280,11 +1286,28 @@ function renderExerciseList(giorno, wl){
     const curKg = (wl.pesi && Array.isArray(wl.pesi[e.k])) ? wl.pesi[e.k] : [];
     const curReps = (wl.repsLog && Array.isArray(wl.repsLog[e.k])) ? wl.repsLog[e.k] : [];
     const curRir = (wl.rirLog && Array.isArray(wl.rirLog[e.k])) ? wl.rirLog[e.k] : [];
+    const curWk = (wl.warmKg && Array.isArray(wl.warmKg[e.k])) ? wl.warmKg[e.k] : [];
+    const curWr = (wl.warmReps && Array.isArray(wl.warmReps[e.k])) ? wl.warmReps[e.k] : [];
     const curAlt = wl.useAlt && wl.useAlt[e.k];
     const curAltNote = (wl.useAltNote && wl.useAltNote[e.k]) || "";
     const repLabel = e.repMin===e.repMax ? `${e.repMin}` : `${e.repMin}-${e.repMax}`;
     const rirTarget = Array.isArray(e.rir) ? e.rir : [];
     const rirLabel = rirTarget.length ? ` · RIR <b class="rirtgt">${rirTarget.join(" / ")}</b>` : "";
+    // Massimo due avvicinamenti: non contano come serie allenanti, non entrano
+    // nei totali, nei grafici, nello storico né nel "ultima volta".
+    const primoCarico = prev && prev.kg[0]!==undefined && prev.kg[0]!=="" ? Number(prev.kg[0]) : null;
+    const suggWarm = q => primoCarico ? String(Math.round(primoCarico*q/2.5)*2.5) : "kg";
+    const warmRows = [0,1].map(i=>{
+      const wkV = curWk[i]!==undefined && curWk[i]!==null ? curWk[i] : "";
+      const wrV = curWr[i]!==undefined && curWr[i]!==null ? curWr[i] : "";
+      return `<div class="setrow warm">
+        <div class="setlabel">Avvic. ${i+1}</div>
+        <input type="number" inputmode="decimal" step="0.5" placeholder="${suggWarm(i===0?0.5:0.7)}" value="${wkV}" onchange="setSetField('${e.k}','warmKg',${i},this.value)">
+        <span class="x">×</span>
+        <input type="number" inputmode="numeric" placeholder="${i===0?8:5}" value="${wrV}" onchange="setSetField('${e.k}','warmReps',${i},this.value)">
+        <span class="warmtag">non conta</span>
+      </div>`;
+    }).join("");
     const setRows = [...Array(e.sets)].map((_,i)=>{
       const kgV = curKg[i]!==undefined && curKg[i]!==null ? curKg[i] : "";
       const repV = curReps[i]!==undefined && curReps[i]!==null ? curReps[i] : "";
@@ -1309,7 +1332,7 @@ function renderExerciseList(giorno, wl){
       <div class="exname">${e.l}</div>
       <div class="target">Target: ${e.sets} serie × ${repLabel} ripetizioni${rirLabel}</div>
       <div class="prev">${prevText}</div>
-      <div class="setrows">${setRows}</div>
+      <div class="setrows">${warmRows}<div class="warmsep">serie allenanti</div>${setRows}</div>
       <div class="alt">
         <input type="checkbox" style="width:auto;" ${curAlt?"checked":""} onchange="setAlt('${e.k}',this.checked)"> Ho usato un esercizio alternativo
       </div>
