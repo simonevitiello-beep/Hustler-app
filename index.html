@@ -534,13 +534,15 @@ function migrateFissoOrfani(){
 // allenamenti non viene toccato: vive in workoutLog, non qui.
 // Versione della scheda prescritta. Va alzata di uno ogni volta che DEFAULT_EXDB cambia
 // davvero: e' il segnale che dice all'app installata di sostituire la scheda salvata.
-const EXDB_VERSION = 4;
 // Il confronto e' "minore di", non "diverso da". Sembra un dettaglio ed e' il punto:
 // una versione precedente aveva come default lo stesso numero che la migrazione usa per
 // dirsi conclusa, quindi appena l'app si apriva quel numero finiva salvato in memoria e
 // da li' in poi la migrazione si saltava da sola, per sempre. Con "minore di" e un default
 // a 0 il numero salvato puo' solo far partire la migrazione, mai bloccarla per sbaglio.
 function migrateExdbV3(){
+  // Dichiarata qui dentro e non fuori: la funzione viene chiamata all'avvio, prima del punto
+  // in cui una costante di primo livello sarebbe gia' inizializzata.
+  const EXDB_VERSION = 4;
   if(Number(DB.exdbVersion||0) >= EXDB_VERSION) return;
   DB.exdb = JSON.parse(JSON.stringify(DEFAULT_EXDB));
   DB.exdbVersion = EXDB_VERSION;
