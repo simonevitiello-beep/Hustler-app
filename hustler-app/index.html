@@ -398,7 +398,7 @@ function defaultDB(){
     foodLibrary: JSON.parse(JSON.stringify(DEFAULT_FOODLIB)),
     barcodeCache: {},
     exdb: JSON.parse(JSON.stringify(DEFAULT_EXDB)),
-    exdbVersion: 3,
+    exdbVersion: 0, // 0 = scheda da migrare. La migrazione lo porta a 3 dopo aver sostituito exdb.
   };
 }
 
