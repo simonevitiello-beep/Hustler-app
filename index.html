@@ -129,6 +129,20 @@
   .exercise .inputs{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .setrows{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
   .setrow{display:flex;align-items:center;gap:8px;}
+  .resttimer{position:fixed;left:12px;right:12px;bottom:74px;z-index:60;display:none;
+    background:#141412;border:1px solid var(--border);border-radius:14px;padding:10px 12px;
+    box-shadow:0 10px 28px rgba(0,0,0,.55);overflow:hidden;}
+  .resttimer.show{display:flex;align-items:center;gap:10px;}
+  .resttimer .t{font-family:Oswald,system-ui,sans-serif;font-size:26px;font-weight:700;min-width:72px;}
+  .resttimer .lbl{font-size:11.5px;color:var(--muted);line-height:1.3;flex:1;}
+  .resttimer .bar{position:absolute;left:0;bottom:0;height:3px;background:#D4A437;width:100%;
+    transition:width .25s linear;}
+  .resttimer.done{border-color:rgba(22,163,74,.5);}
+  .resttimer.done .t{color:#86EFAC;}
+  .resttimer.done .bar{background:#22C55E;}
+  .exhead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .exmove{display:flex;gap:4px;flex:0 0 auto;}
+  .exmove button{padding:2px 8px;font-size:14px;line-height:1.4;min-width:30px;}
   .setrow .setlabel{width:56px;flex:0 0 auto;font-size:12px;color:var(--muted);font-weight:700;}
   .setrow input{flex:1;min-width:0;padding:8px 4px;text-align:center;}
   .setrow .x{color:var(--muted);font-size:12px;flex:0 0 auto;}
@@ -187,6 +201,13 @@
   <button data-tab="progressi"><span class="ic">📈</span>Progressi</button>
   <button data-tab="impostazioni"><span class="ic">⚙</span>Impostazioni</button>
 </nav>
+<div class="resttimer" id="restTimer">
+  <div class="t">0:00</div>
+  <div class="lbl"></div>
+  <button class="btn small" onclick="addRest(30)">+30s</button>
+  <button class="btn small" onclick="stopRest()">✕</button>
+  <div class="bar"></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -205,39 +226,39 @@ const SLOTS = [
 
 const DEFAULT_EXDB = {
   1: {label:"Giorno 1 \u2014 Petto + Tricipiti", ex:[
-    {k:"panca-piana", l:"Panca piana Manubri", sets:4, repMin:6, repMax:8, rir:[2,2,1,1], warm:2},
-    {k:"panca-inclinata-30", l:"Panca inclinata manubri 30\u00b0", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1},
-    {k:"chest-fly", l:"Chest fly ai cavi seduto", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:0},
-    {k:"tricep-pushdown", l:"Push-down tricipiti", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:0},
+    {k:"panca-piana", l:"Panca piana Manubri", sets:4, repMin:6, repMax:8, rir:[2,2,1,1], warm:2, rec:180},
+    {k:"panca-inclinata-30", l:"Panca inclinata manubri 30\u00b0", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120},
+    {k:"chest-fly", l:"Chest fly ai cavi seduto", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:1, rec:90},
+    {k:"tricep-pushdown", l:"Push-down tricipiti", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90},
   ]},
   2: {label:"Giorno 2 \u2014 Schiena + Bicipiti", ex:[
-    {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2},
-    {k:"rematore-bil", l:"Rematore manubri", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:1},
-    {k:"cable-row", l:"Cable row presa larga", sets:2, repMin:10, repMax:12, rir:[1,1], warm:0},
-    {k:"face-pull", l:"Face pull", sets:3, repMin:15, repMax:15, rir:[2,1,0], warm:0},
-    {k:"curl-ez", l:"Curl EZ", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:0},
+    {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180},
+    {k:"rematore-bil", l:"Rematore manubri", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:1, rec:120},
+    {k:"cable-row", l:"Cable row presa larga", sets:2, repMin:10, repMax:12, rir:[1,1], warm:1, rec:90},
+    {k:"face-pull", l:"Face pull", sets:3, repMin:15, repMax:15, rir:[2,1,0], warm:1, rec:90},
+    {k:"curl-ez", l:"Curl EZ", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90},
   ]},
   3: {label:"Giorno 3 \u2014 Gambe A (Quadricipiti)", ex:[
-    {k:"squat", l:"Squat con bilanciere", sets:4, repMin:8, repMax:10, rir:[2,2,2,1], warm:2},
-    {k:"leg-press", l:"Leg press inclinata", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1},
-    {k:"leg-extension", l:"Leg extension", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:0},
-    {k:"calf-raise", l:"Calf raise in piedi con bilanciere", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1},
+    {k:"squat", l:"Squat con bilanciere", sets:4, repMin:8, repMax:10, rir:[2,2,2,1], warm:2, rec:180},
+    {k:"leg-press", l:"Leg press inclinata", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120},
+    {k:"leg-extension", l:"Leg extension", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:1, rec:90},
+    {k:"calf-raise", l:"Calf raise in piedi con bilanciere", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120},
   ]},
   4: {label:"Giorno 4 \u2014 Petto B + Schiena B + Spalle", ex:[
-    {k:"panca-inclinata-bil", l:"Supine Press", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:2},
-    {k:"croci-cavi", l:"Croci ai cavi seduto", sets:2, repMin:12, repMax:15, rir:[1,0], warm:0},
-    {k:"lat-stretta", l:"Lat machine presa a V", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1},
-    {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15, rir:[1,0], warm:0},
-    {k:"shoulder-press", l:"Shoulder press manubri", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1},
-    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:0},
+    {k:"panca-inclinata-bil", l:"Supine Press", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:2, rec:180},
+    {k:"croci-cavi", l:"Croci ai cavi seduto", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90},
+    {k:"lat-stretta", l:"Lat machine presa a V", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120},
+    {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90},
+    {k:"shoulder-press", l:"Shoulder press manubri", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120},
+    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90},
   ]},
   5: {label:"Giorno 5 \u2014 Gambe B + Spalle/Braccia", ex:[
-    {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2},
-    {k:"leg-curl", l:"Leg curl", sets:4, repMin:10, repMax:12, rir:[2,2,1,1], warm:1},
-    {k:"calf-raise-seduto", l:"Calf raise leg press", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1},
-    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1},
-    {k:"hammer-curl", l:"Hammer curl manubri", sets:3, repMin:10, repMax:12, rir:[1,1,0], warm:1},
-    {k:"tricep-overhead", l:"Estensioni tricipiti sopra la testa ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1},
+    {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180},
+    {k:"leg-curl", l:"Leg curl", sets:4, repMin:10, repMax:12, rir:[2,2,1,1], warm:1, rec:120},
+    {k:"calf-raise-seduto", l:"Calf raise leg press", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120},
+    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90},
+    {k:"hammer-curl", l:"Hammer curl manubri", sets:3, repMin:10, repMax:12, rir:[1,1,0], warm:1, rec:120},
+    {k:"tricep-overhead", l:"Estensioni tricipiti sopra la testa ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90},
   ]},
 };
 
@@ -542,7 +563,7 @@ function migrateFissoOrfani(){
 function migrateExdbV3(){
   // Dichiarata qui dentro e non fuori: la funzione viene chiamata all'avvio, prima del punto
   // in cui una costante di primo livello sarebbe gia' inizializzata.
-  const EXDB_VERSION = 4;
+  const EXDB_VERSION = 5;
   if(Number(DB.exdbVersion||0) >= EXDB_VERSION) return;
   DB.exdb = JSON.parse(JSON.stringify(DEFAULT_EXDB));
   DB.exdbVersion = EXDB_VERSION;
@@ -554,9 +575,12 @@ function migrateExdbV3(){
 // Non sostituisce mai la scheda: le tue modifiche restano dove sono.
 function reconcileExdbShape(){
   let changed = false;
-  const warmDiDefault = {};
+  const warmDiDefault = {}, recDiDefault = {};
   Object.keys(DEFAULT_EXDB).forEach(g=>{
-    (DEFAULT_EXDB[g].ex||[]).forEach(e=>{ if(e.warm!==undefined) warmDiDefault[e.k] = e.warm; });
+    (DEFAULT_EXDB[g].ex||[]).forEach(e=>{
+      if(e.warm!==undefined) warmDiDefault[e.k] = e.warm;
+      if(e.rec) recDiDefault[e.k] = e.rec;
+    });
   });
   Object.keys(DB.exdb||{}).forEach(g=>{
     const day = DB.exdb[g];
@@ -565,6 +589,10 @@ function reconcileExdbShape(){
       const nSets = Math.max(1, Number(e.sets)||1);
       if(e.warm===undefined){
         e.warm = warmDiDefault[e.k]!==undefined ? warmDiDefault[e.k] : 1;
+        changed = true;
+      }
+      if(!e.rec){
+        e.rec = recDiDefault[e.k] || (e.warm>=2 ? 180 : 120);
         changed = true;
       }
       if(!Array.isArray(e.rir)){
@@ -1286,11 +1314,12 @@ function renderAllenamento(app){
 
     <div id="exerciseList"></div>
 
+    ${GIORNI_GAMBE.includes(giorno) ? "" : `
     <div class="card">
       <label class="row" style="gap:8px;font-size:14px;font-weight:700;">
         <input type="checkbox" id="cardioCheck" style="width:auto;" ${wl.cardioDone?"checked":""} onchange="toggleCardio(this.checked)"> Cardio 10 minuti
       </label>
-    </div>
+    </div>`}
 
     <div class="row" style="gap:8px;margin-top:6px;">
       <button class="btn block" style="background:var(--card2);" onclick="markSkipped()">Segna saltato</button>
@@ -1329,10 +1358,121 @@ function toggleCardio(checked){
   wl.cardioDone = checked;
   saveDB();
 }
+/* ===================== GIORNI GAMBE, ORDINE, TIMER RECUPERO =====================
+   GIORNI_GAMBE: nei giorni gambe il cardio non compare proprio, cosi' le gambe
+   arrivano al giorno dopo senza fatica aggiuntiva.
+   Ordine: e' salvato dentro la sessione del giorno (wl.order), non nella scheda.
+   Serve per quando un macchinario e' occupato: sposti l'esercizio solo per oggi
+   e domani ritrovi la scheda com'era. Lo storico e' indicizzato per esercizio,
+   quindi l'ordine non tocca nessun dato.
+   Timer: parte da solo quando registri le ripetizioni di una serie allenante e
+   dura quanto dice il campo "rec" di quell'esercizio (180 / 120 / 90 secondi).
+================================================================================ */
+const GIORNI_GAMBE = [3, 5];
+
+function orderedEx(giorno, wl){
+  const base = (DB.exdb[giorno] && Array.isArray(DB.exdb[giorno].ex)) ? DB.exdb[giorno].ex : [];
+  const ord = (wl && Array.isArray(wl.order)) ? wl.order : null;
+  if(!ord || !ord.length) return base.slice();
+  const pos = k => { const i = ord.indexOf(k); return i < 0 ? 999 : i; };
+  return base.slice().sort((a,b)=> pos(a.k) - pos(b.k));
+}
+function moveExercise(dir, exKey){
+  const wl = ensureWL();
+  const giorno = wl.giorno || computeNextGiorno();
+  const cur = orderedEx(giorno, wl).map(e=>e.k);
+  const i = cur.indexOf(exKey), j = i + dir;
+  if(i < 0 || j < 0 || j >= cur.length) return;
+  cur.splice(j, 0, cur.splice(i, 1)[0]);
+  wl.order = cur;
+  saveDB(); render();
+}
+function resetOrdine(){
+  const wl = ensureWL();
+  delete wl.order;
+  saveDB(); toast("Ordine ripristinato"); render();
+}
+function recForEx(exKey, giorno){
+  const day = DB.exdb[giorno];
+  if(!day) return 120;
+  const e = (day.ex||[]).find(x=>x.k===exKey);
+  return (e && e.rec) ? e.rec : 120;
+}
+function recLabel(sec){
+  const m = Math.floor(sec/60), r = sec%60;
+  return r ? (m + ":" + String(r).padStart(2,"0")) : (m + " min");
+}
+
+let REST = { endsAt:0, total:0, label:"", timerId:null, beeped:false };
+function fmtSec(sec){
+  const m = Math.floor(sec/60), r = sec%60;
+  return m + ":" + String(r).padStart(2,"0");
+}
+function startRest(seconds, label){
+  REST.total = seconds;
+  REST.endsAt = Date.now() + seconds*1000;
+  REST.label = label || "";
+  REST.beeped = false;
+  const el = document.getElementById("restTimer");
+  if(el) el.classList.add("show");
+  if(REST.timerId) clearInterval(REST.timerId);
+  REST.timerId = setInterval(tickRest, 250);
+  tickRest();
+}
+function tickRest(){
+  const el = document.getElementById("restTimer");
+  if(!el) return;
+  const left = Math.max(0, Math.round((REST.endsAt - Date.now())/1000));
+  const t = el.querySelector(".t"), lbl = el.querySelector(".lbl"), bar = el.querySelector(".bar");
+  if(t) t.textContent = fmtSec(left);
+  if(lbl) lbl.textContent = left === 0 ? ("Pronto \u2014 " + REST.label) : REST.label;
+  if(bar) bar.style.width = REST.total ? Math.max(0, left/REST.total*100) + "%" : "0%";
+  el.classList.toggle("done", left === 0);
+  if(left === 0 && !REST.beeped){
+    REST.beeped = true;
+    restAlert();
+    // il timer resta visibile a zero: lo chiudi tu, o riparte alla serie dopo
+    if(REST.timerId){ clearInterval(REST.timerId); REST.timerId = null; }
+  }
+}
+function restAlert(){
+  try{ if(navigator.vibrate) navigator.vibrate([300,120,300]); }catch(e){}
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    const ctx = new AC();
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sine"; osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
+    osc.start(); osc.stop(ctx.currentTime + 0.85);
+  }catch(e){}
+}
+function addRest(sec){
+  if(!REST.total) return;
+  REST.endsAt += sec*1000;
+  REST.total += sec;
+  REST.beeped = false;
+  if(!REST.timerId) REST.timerId = setInterval(tickRest, 250);
+  tickRest();
+}
+function stopRest(){
+  if(REST.timerId){ clearInterval(REST.timerId); REST.timerId = null; }
+  REST.total = 0; REST.endsAt = 0;
+  const el = document.getElementById("restTimer");
+  if(el){ el.classList.remove("show"); el.classList.remove("done"); }
+}
+
 function renderExerciseList(giorno, wl){
   const el = document.getElementById("exerciseList");
   const info = DB.exdb[giorno];
-  el.innerHTML = `<h3 class="section">${info.label}</h3>` + info.ex.map(e=>{
+  const ordinati = orderedEx(giorno, wl);
+  const ordineCustom = Array.isArray(wl.order) && wl.order.length;
+  el.innerHTML = `<h3 class="section">${info.label}</h3>`
+    + (ordineCustom ? `<div class="banner warn" style="margin-bottom:10px;">Ordine cambiato solo per oggi. La scheda non e' stata toccata. <button class="btn small" style="margin-top:8px;" onclick="resetOrdine()">Ripristina ordine</button></div>` : "")
+    + ordinati.map(e=>{
     const prev = lastWorkoutFor(e.k, addDays(selDate,-1));
     const curKg = (wl.pesi && Array.isArray(wl.pesi[e.k])) ? wl.pesi[e.k] : [];
     const curReps = (wl.repsLog && Array.isArray(wl.repsLog[e.k])) ? wl.repsLog[e.k] : [];
@@ -1354,9 +1494,9 @@ function renderExerciseList(giorno, wl){
       const wrV = curWr[i]!==undefined && curWr[i]!==null ? curWr[i] : "";
       return `<div class="setrow warm">
         <div class="setlabel">Avvic. ${i+1}</div>
-        <input type="number" inputmode="decimal" step="0.5" placeholder="${suggWarm(i===0?0.5:0.7)}" value="${wkV}" onchange="setSetField('${e.k}','warmKg',${i},this.value)">
+        <input type="number" inputmode="decimal" step="0.5" placeholder="${suggWarm(nWarm===1 ? 0.7 : (i===0?0.5:0.7))}" value="${wkV}" onchange="setSetField('${e.k}','warmKg',${i},this.value)">
         <span class="x">×</span>
-        <input type="number" inputmode="numeric" placeholder="${i===0?8:5}" value="${wrV}" onchange="setSetField('${e.k}','warmReps',${i},this.value)">
+        <input type="number" inputmode="numeric" placeholder="${nWarm===1 ? 6 : (i===0?8:5)}" value="${wrV}" onchange="setSetField('${e.k}','warmReps',${i},this.value)">
         <span class="warmtag">non conta</span>
       </div>`;
     }).join("");
@@ -1380,9 +1520,16 @@ function renderExerciseList(giorno, wl){
     const prevText = prev
       ? `<span class="prevlabel">Ultima volta: ${niceDate(prev.date)}</span>`
       : `<span class="prevlabel">Nessun dato precedente</span>`;
+    const recSec = e.rec || 120;
     return `<div class="exercise">
-      <div class="exname">${e.l}</div>
-      <div class="target">Target: ${e.sets} serie × ${repLabel} ripetizioni${rirLabel}</div>
+      <div class="exhead">
+        <div class="exname">${e.l}</div>
+        <div class="exmove">
+          <button class="btn small" onclick="moveExercise(-1,'${e.k}')" title="Sposta su">&#8593;</button>
+          <button class="btn small" onclick="moveExercise(1,'${e.k}')" title="Sposta giù">&#8595;</button>
+        </div>
+      </div>
+      <div class="target">Target: ${e.sets} serie × ${repLabel} ripetizioni${rirLabel} · Recupero ${recLabel(recSec)}</div>
       <div class="prev">${prevText}</div>
       <div class="setrows">${nWarm ? warmRows+'<div class="warmsep">serie allenanti</div>' : ""}${setRows}</div>
       <div class="alt">
@@ -1399,6 +1546,13 @@ function setSetField(exKey, field, setIdx, val){
   wl[field][exKey][setIdx] = val==="" ? "" : Number(val);
   autoMarkDoneIfData(wl);
   saveDB();
+  // Il recupero parte quando chiudi una serie allenante registrando le ripetizioni.
+  // Solo per la giornata di oggi: se stai sistemando un log vecchio non ha senso.
+  if(field === "repsLog" && val !== "" && selDate === todayStr()){
+    const g = wl.giorno || computeNextGiorno();
+    const ex = (DB.exdb[g] && DB.exdb[g].ex || []).find(x=>x.k===exKey);
+    startRest(recForEx(exKey, g), (ex ? ex.l : "") + " · serie " + (setIdx+1) + " fatta");
+  }
   render();
 }
 function setAlt(exKey, checked){
