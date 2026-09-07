@@ -1586,15 +1586,19 @@ function suggerimentoCarico(e, prev){
     return Number(rir[i]) <= Number(target[i]);
   });
 
+  // --- Senza RIR non si consiglia niente ---
+  // Le sole ripetizioni dicono dove sei arrivato, non come ci sei arrivato: otto
+  // ripetizioni a RIR 0 e otto a RIR 4 chiedono due decisioni diverse sul carico.
+  // Finche' il RIR non c'e', l'app tace invece di dedurre.
+  if(rirMancante){
+    return { t:"info", txt:"Manca il RIR nella sessione precedente: nessun suggerimento" };
+  }
+
   // --- CASO 1: sotto il minimo del range su piu' serie ---
-  // Il RIR qui serve a distinguere due problemi opposti: un carico davvero troppo alto
-  // (hai spinto fino in fondo e le ripetizioni non ci sono) da uno sforzo insufficiente
-  // (ti sei fermato presto). Togliere peso nel secondo caso e' il consiglio sbagliato.
+  // Il RIR distingue due problemi opposti: carico davvero troppo alto (hai spinto
+  // fino in fondo e le ripetizioni non ci sono) da sforzo insufficiente (ti sei
+  // fermato presto). Togliere peso nel secondo caso e' il consiglio sbagliato.
   if(sotto >= 2){
-    if(rirMancante){
-      return { t:"forse", txt:"Sotto il range. Se eri vicino al cedimento il carico e\u0300 alto (scendi a "
-        + arrotondaAlPasso(carico*0.95, passo) + " kg); se ti sei fermato prima, tieni " + carico + " kg e spingi." };
-    }
     if(rirOk){
       return { t:"giu", txt:"Carico troppo alto: scendi a " + arrotondaAlPasso(carico*0.95, passo) + " kg" };
     }
@@ -1610,9 +1614,6 @@ function suggerimentoCarico(e, prev){
     const oltre = minReps - e.repMax;
     const mult = oltre >= 6 ? 3 : (oltre >= 3 ? 2 : 1);
     const nuovo = carico + passo*mult;
-    if(rirMancante){
-      return { t:"su", txt:"Tutte le serie al massimo: sali a " + nuovo + " kg (+" + (passo*mult) + ")" };
-    }
     if(!rirOk){
       return { t:"su", txt:"Massimo del range con RIR sopra il target: carico leggero, sali a " + nuovo + " kg (+" + (passo*mult) + ")" };
     }
@@ -1620,7 +1621,7 @@ function suggerimentoCarico(e, prev){
   }
 
   // --- CASO 3: dentro il range ---
-  if(!rirMancante && !rirOk){
+  if(!rirOk){
     return { t:"resta", txt:"Resta a " + carico + " kg: le ripetizioni non sono al massimo e il RIR e\u0300 sopra il target, quindi c'e\u0300 margine per spingere" };
   }
   return { t:"resta", txt:"Resta a " + carico + " kg, punta a " + e.repMax + " ripetizioni su tutte le serie" };
