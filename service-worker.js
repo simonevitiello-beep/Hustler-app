@@ -1,4 +1,4 @@
-const CACHE = "hustler-tracker-v14";
+const CACHE = "hustler-tracker-v15";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
