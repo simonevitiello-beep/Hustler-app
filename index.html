@@ -152,7 +152,7 @@
     padding:9px 10px;font-size:11.5px;line-height:1.6;color:var(--muted);}
   .rombody .r{display:flex;gap:8px;margin-bottom:5px;}
   .rombody .r:last-child{margin-bottom:0;}
-  .rombody .k{flex:0 0 96px;color:var(--gold-light);font-weight:700;}
+  .rombody .k{flex:0 0 104px;color:var(--gold-light);font-weight:700;}
   .rombody b{color:var(--text);}
   .rombody .err{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);color:#E0A0A0;}
   .sugg{font-size:12px;font-weight:700;border-radius:9px;padding:6px 9px;margin:2px 0 8px;
@@ -1806,8 +1806,8 @@ function renderExerciseList(giorno, wl){
     const romHtml = rom ? `<details class="rom">
         <summary>Esecuzione e ROM</summary>
         <div class="rombody">
-          <div class="r"><div class="k">In allungamento</div><div>${rom.all}</div></div>
-          <div class="r"><div class="k">In accorciamento</div><div>${rom.acc}</div></div>
+          <div class="r"><div class="k">Allungamento</div><div>${rom.all}</div></div>
+          <div class="r"><div class="k">Accorciamento</div><div>${rom.acc}</div></div>
           ${rom.tempo ? `<div class="r"><div class="k">Tempo</div><div>${rom.tempo}</div></div>` : ""}
           ${rom.err ? `<div class="err">Errore tipico: ${rom.err}</div>` : ""}
         </div>
