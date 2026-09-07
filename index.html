@@ -140,6 +140,21 @@
   .resttimer.done{border-color:rgba(22,163,74,.5);}
   .resttimer.done .t{color:#86EFAC;}
   .resttimer.done .bar{background:#22C55E;}
+  details.rom{margin:0 0 8px;}
+  details.rom summary{list-style:none;cursor:pointer;font-size:11.5px;font-weight:700;
+    color:var(--gold-light);padding:5px 9px;border:1px solid var(--gold-dim);
+    border-radius:9px;display:inline-block;}
+  details.rom summary::-webkit-details-marker{display:none;}
+  details.rom summary::after{content:" \25BE";}
+  details.rom[open] summary::after{content:" \25B4";}
+  details.rom[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}
+  .rombody{border:1px solid var(--gold-dim);border-top:none;border-radius:0 9px 9px 9px;
+    padding:9px 10px;font-size:11.5px;line-height:1.6;color:var(--muted);}
+  .rombody .r{display:flex;gap:8px;margin-bottom:5px;}
+  .rombody .r:last-child{margin-bottom:0;}
+  .rombody .k{flex:0 0 96px;color:var(--gold-light);font-weight:700;}
+  .rombody b{color:var(--text);}
+  .rombody .err{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);color:#E0A0A0;}
   .sugg{font-size:12px;font-weight:700;border-radius:9px;padding:6px 9px;margin:2px 0 8px;
     border:1px solid var(--border);line-height:1.35;}
   .sugg.su{background:rgba(22,163,74,.12);border-color:rgba(22,163,74,.4);color:#86EFAC;}
@@ -229,6 +244,163 @@ const SLOTS = [
   {k:"cena", l:"Cena"},
   {k:"spuntino-sera", l:"Spuntino sera"},
 ];
+
+// Punti di riferimento del movimento (ROM = Range Of Motion, l'ampiezza dell'escursione).
+// Sono dati di riferimento, non configurazione: stanno fuori dalla scheda modificabile,
+// cosi' nessuna migrazione li tocca. Chiave = chiave esercizio; se un esercizio non e'
+// in elenco (per esempio uno aggiunto a mano dall'editor) la sezione non compare.
+const ROM_INFO = {
+"panca-piana": {
+"all": "Manubri all'altezza del petto, gomiti poco sotto la linea del busto. Fermati quando senti il petto teso, non prima.",
+"acc": "Braccia distese sopra le spalle, senza far toccare i manubri fra loro.",
+"tempo": "2 secondi in discesa, nessun rimbalzo sul petto.",
+"err": "Scendere a metà per caricare di più. Se aggiungendo peso la serie sembra più fluida, hai accorciato il movimento."
+},
+"panca-inclinata-30": {
+"all": "Manubri all'altezza della parte alta del petto, gomiti leggermente sotto le spalle.",
+"acc": "Braccia distese sopra le clavicole.",
+"tempo": "2 secondi in discesa.",
+"err": "Alzare troppo lo schienale: oltre i 30-40° il lavoro passa alle spalle e il petto alto smette di riceverlo."
+},
+"chest-fly": {
+"all": "Braccia aperte fino a sentire il petto in tensione, gomiti quasi fermi con una leggera piega.",
+"acc": "Mani che si avvicinano davanti allo sterno, senza incrociarle.",
+"tempo": "Controlla l'apertura, non farti tirare indietro dal cavo.",
+"err": "Piegare e stendere i gomiti: così diventa una spinta, non un'apertura."
+},
+"tricep-pushdown": {
+"all": "Gomiti fermi ai fianchi, avambracci su fino a circa 90°.",
+"acc": "Braccia completamente distese, senza spingere il busto in avanti.",
+"tempo": "Mezzo secondo di fermo in basso.",
+"err": "Aiutarsi con spalle e peso del corpo. I gomiti non si staccano dai fianchi."
+},
+"lat-machine": {
+"all": "Braccia distese in alto <b>e scapole che salgono</b>. È qui che il dorsale si allunga: se non ci arrivi, perdi la parte che conta di più.",
+"acc": "Barra all'altezza della clavicola, gomiti verso il basso.",
+"tempo": "2 secondi in risalita, nessun rimbalzo.",
+"err": "Sdraiarsi indietro per tirare più peso. Se il busto si muove, il carico è troppo alto."
+},
+"rematore-bil": {
+"all": "Braccio disteso in basso, scapola che scorre in avanti.",
+"acc": "Gomito oltre la linea del busto, scapola tirata indietro.",
+"tempo": "2 secondi in discesa.",
+"err": "Ruotare il busto per accompagnare il manubrio. Il tronco resta fermo."
+},
+"cable-row": {
+"all": "Braccia distese in avanti, scapole che si aprono, busto fermo.",
+"acc": "Impugnatura al petto, gomiti indietro.",
+"tempo": "2 secondi nel ritorno.",
+"err": "Dondolare avanti e indietro col busto per dare slancio."
+},
+"face-pull": {
+"all": "Braccia distese in avanti, spalle che si lasciano tirare avanti.",
+"acc": "Mani ai lati della fronte, gomiti alti all'altezza delle spalle.",
+"tempo": "Un secondo di fermo in contrazione.",
+"err": "Tirare con braccia e trapezi. Se senti il collo, il peso è troppo alto."
+},
+"curl-ez": {
+"all": "Braccia completamente distese in basso.",
+"acc": "Bilanciere all'altezza del petto, gomiti fermi ai fianchi.",
+"tempo": "2 secondi in discesa.",
+"err": "Slanciare col busto e portare i gomiti in avanti."
+},
+"squat": {
+"all": "Piega dell'anca <b>sotto</b> la linea del ginocchio.",
+"acc": "In piedi, anca estesa, ginocchia non bloccate di scatto.",
+"tempo": "2-3 secondi in discesa, controllati.",
+"err": "Fermarsi sopra il parallelo per caricare di più. Meglio meno peso e scendere davvero."
+},
+"leg-press": {
+"all": "Ginocchia verso il petto fino a poco prima che il bacino si stacchi dallo schienale.",
+"acc": "Gambe quasi distese, senza bloccare le ginocchia.",
+"tempo": "2 secondi in discesa.",
+"err": "Scendere così tanto da staccare la schiena: la lombare si arrotonda."
+},
+"leg-extension": {
+"all": "Ginocchia piegate, gambe giù, tensione già presente.",
+"acc": "Gambe distese, un secondo di fermo in alto.",
+"tempo": "Controlla il ritorno, non lasciare cadere il peso.",
+"err": "Lanciare la gamba e farla ricadere."
+},
+"calf-raise": {
+"all": "Talloni giù sotto la linea dell'avampiede, fino a sentire tirare il polpaccio.",
+"acc": "In punta di piedi, un secondo di fermo in alto.",
+"tempo": "Lento in entrambe le direzioni.",
+"err": "Rimbalzare. Il polpaccio è elastico: se rimbalzi lavora il tendine, non il muscolo."
+},
+"panca-inclinata-bil": {
+"all": "Impugnature all'altezza del petto, gomiti poco sotto la linea delle spalle.",
+"acc": "Braccia distese, senza bloccare i gomiti di scatto.",
+"tempo": "2 secondi in discesa.",
+"err": "Fermarsi a metà corsa perché il carico è alto. Meglio 60 kg completi che 80 a metà."
+},
+"croci-cavi": {
+"all": "Braccia aperte fino a sentire il petto teso, gomiti fermi con una leggera piega.",
+"acc": "Mani davanti allo sterno.",
+"tempo": "Apertura lenta e controllata.",
+"err": "Trasformarla in una spinta piegando i gomiti."
+},
+"lat-stretta": {
+"all": "Braccia distese in alto, scapole che salgono.",
+"acc": "Impugnatura alla parte alta del petto, gomiti stretti verso il basso.",
+"tempo": "2 secondi in risalita.",
+"err": "Tirare con i bicipiti invece che portare giù i gomiti."
+},
+"pulley-basso": {
+"all": "Braccia distese in avanti, scapole che si aprono.",
+"acc": "Impugnatura all'addome, gomiti stretti al corpo.",
+"tempo": "2 secondi nel ritorno.",
+"err": "Portare indietro il busto per finire la ripetizione."
+},
+"shoulder-press": {
+"all": "Manubri all'altezza delle orecchie, gomiti sotto i polsi.",
+"acc": "Braccia distese sopra la testa, senza far toccare i manubri.",
+"tempo": "2 secondi in discesa.",
+"err": "Inarcare la schiena per aiutarsi. Costole giù, addome attivo."
+},
+"alzate-laterali": {
+"all": "Braccia lungo i fianchi, ferme, nessuno slancio.",
+"acc": "Gomiti all'altezza delle spalle, non più su.",
+"tempo": "Salita in un secondo, discesa in due.",
+"err": "Slanciare con le gambe e col busto. Se serve slancio, il peso è troppo."
+},
+"hip-thrust": {
+"all": "Bacino basso, glutei allungati, schiena appoggiata alla panca.",
+"acc": "Anca estesa spingendo con i <b>glutei</b>, busto e bacino in linea.",
+"tempo": "Un secondo di fermo in alto.",
+"err": "Finire il movimento inarcando la lombare invece di stringere i glutei. È così che ci si fa venire la schiena inarcata."
+},
+"leg-curl": {
+"all": "Gambe quasi distese, femorali allungati.",
+"acc": "Talloni verso i glutei, un secondo di fermo.",
+"tempo": "2 secondi nel ritorno.",
+"err": "Staccare il bacino dal supporto per arrivare più su."
+},
+"calf-raise-seduto": {
+"all": "Talloni giù, solo le punte sulla pedana, fino a sentire tirare.",
+"acc": "Spinta completa in punta di piedi.",
+"tempo": "Lento, senza rimbalzo.",
+"err": "Stendere le ginocchia. A ginocchio teso alleni i gemelli, che fai già nel G3: qui serve il soleo, quindi ginocchio a 90°."
+},
+"alzate-posteriori": {
+"all": "Braccia in avanti, ferme, nessuno slancio.",
+"acc": "Gomiti all'altezza delle spalle, aperti verso l'esterno.",
+"tempo": "Salita in un secondo, discesa in due.",
+"err": "Tirare con i trapezi. Se senti fra collo e spalla stai usando il muscolo sbagliato: peso bassissimo, scapole ferme."
+},
+"hammer-curl": {
+"all": "Braccia distese lungo i fianchi, palmi che si guardano.",
+"acc": "Manubrio all'altezza della spalla, gomito fermo.",
+"tempo": "2 secondi in discesa.",
+"err": "Portare il gomito in avanti per finire la salita."
+},
+"tricep-overhead": {
+"all": "Mani dietro la nuca, gomiti alti e fermi. È qui che il capo lungo del tricipite si allunga.",
+"acc": "Braccia distese sopra la testa.",
+"tempo": "2 secondi nel ritorno.",
+"err": "Abbassare i gomiti: così diventa un push-down e perdi il motivo per cui l'esercizio è in scheda."
+}
+};
 
 const DEFAULT_EXDB = {
   1: {label:"Giorno 1 \u2014 Petto + Tricipiti", ex:[
@@ -1630,6 +1802,16 @@ function renderExerciseList(giorno, wl){
         <input class="rirbox ${rirCls}${fuori}" type="number" inputmode="numeric" min="0" max="5" placeholder="${rirPh}" value="${rirV}" onchange="setSetField('${e.k}','rirLog',${i},this.value)">
       </div>`;
     }).join("");
+    const rom = ROM_INFO[e.k];
+    const romHtml = rom ? `<details class="rom">
+        <summary>Esecuzione e ROM</summary>
+        <div class="rombody">
+          <div class="r"><div class="k">In allungamento</div><div>${rom.all}</div></div>
+          <div class="r"><div class="k">In accorciamento</div><div>${rom.acc}</div></div>
+          ${rom.tempo ? `<div class="r"><div class="k">Tempo</div><div>${rom.tempo}</div></div>` : ""}
+          ${rom.err ? `<div class="err">Errore tipico: ${rom.err}</div>` : ""}
+        </div>
+      </details>` : "";
     const sugg = suggerimentoCarico(e, prev);
     const suggHtml = sugg ? `<div class="sugg ${sugg.t}">${sugg.t==="su"?"\u2191":sugg.t==="giu"?"\u2193":sugg.t==="forse"?"?":"\u2192"} ${sugg.txt}</div>` : "";
     const prevText = prev
@@ -1645,6 +1827,7 @@ function renderExerciseList(giorno, wl){
         </div>
       </div>
       <div class="target">Target: ${e.sets} serie × ${repLabel} ripetizioni${rirLabel} · Recupero ${recLabel(recSec)}</div>
+      ${romHtml}
       <div class="prev">${prevText}</div>
       ${suggHtml}
       <div class="setrows">${nWarm ? warmRows+'<div class="warmsep">serie allenanti</div>' : ""}${setRows}</div>
