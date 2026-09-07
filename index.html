@@ -140,6 +140,12 @@
   .resttimer.done{border-color:rgba(22,163,74,.5);}
   .resttimer.done .t{color:#86EFAC;}
   .resttimer.done .bar{background:#22C55E;}
+  .sugg{font-size:12px;font-weight:700;border-radius:9px;padding:6px 9px;margin:2px 0 8px;
+    border:1px solid var(--border);line-height:1.35;}
+  .sugg.su{background:rgba(22,163,74,.12);border-color:rgba(22,163,74,.4);color:#86EFAC;}
+  .sugg.giu{background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.35);color:#FCA5A5;}
+  .sugg.forse{background:rgba(217,119,6,.1);border-color:rgba(217,119,6,.35);color:#FCD34D;}
+  .sugg.resta,.sugg.info{background:var(--card2);color:var(--muted);font-weight:600;}
   .exhead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
   .exmove{display:flex;gap:4px;flex:0 0 auto;}
   .exmove button{padding:2px 8px;font-size:14px;line-height:1.4;min-width:30px;}
@@ -226,39 +232,39 @@ const SLOTS = [
 
 const DEFAULT_EXDB = {
   1: {label:"Giorno 1 \u2014 Petto + Tricipiti", ex:[
-    {k:"panca-piana", l:"Panca piana Manubri", sets:4, repMin:6, repMax:8, rir:[2,2,1,1], warm:2, rec:180},
-    {k:"panca-inclinata-30", l:"Panca inclinata manubri 30\u00b0", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120},
-    {k:"chest-fly", l:"Chest fly ai cavi seduto", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:1, rec:90},
-    {k:"tricep-pushdown", l:"Push-down tricipiti", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90},
+    {k:"panca-piana", l:"Panca piana Manubri", sets:4, repMin:6, repMax:8, rir:[2,2,1,1], warm:2, rec:180, step:2},
+    {k:"panca-inclinata-30", l:"Panca inclinata manubri 30\u00b0", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120, step:2},
+    {k:"chest-fly", l:"Chest fly ai cavi seduto", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:1, rec:90, step:5},
+    {k:"tricep-pushdown", l:"Push-down tricipiti", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90, step:5},
   ]},
   2: {label:"Giorno 2 \u2014 Schiena + Bicipiti", ex:[
-    {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180},
-    {k:"rematore-bil", l:"Rematore manubri", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:1, rec:120},
-    {k:"cable-row", l:"Cable row presa larga", sets:2, repMin:10, repMax:12, rir:[1,1], warm:1, rec:90},
-    {k:"face-pull", l:"Face pull", sets:3, repMin:15, repMax:15, rir:[2,1,0], warm:1, rec:90},
-    {k:"curl-ez", l:"Curl EZ", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90},
+    {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180, step:5},
+    {k:"rematore-bil", l:"Rematore manubri", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:1, rec:120, step:2},
+    {k:"cable-row", l:"Cable row presa larga", sets:2, repMin:10, repMax:12, rir:[1,1], warm:1, rec:90, step:5},
+    {k:"face-pull", l:"Face pull", sets:3, repMin:15, repMax:15, rir:[2,1,0], warm:1, rec:90, step:5},
+    {k:"curl-ez", l:"Curl EZ", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90, step:2.5},
   ]},
   3: {label:"Giorno 3 \u2014 Gambe A (Quadricipiti)", ex:[
-    {k:"squat", l:"Squat con bilanciere", sets:4, repMin:8, repMax:10, rir:[2,2,2,1], warm:2, rec:180},
-    {k:"leg-press", l:"Leg press inclinata", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120},
-    {k:"leg-extension", l:"Leg extension", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:1, rec:90},
-    {k:"calf-raise", l:"Calf raise in piedi con bilanciere", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120},
+    {k:"squat", l:"Squat con bilanciere", sets:4, repMin:8, repMax:10, rir:[2,2,2,1], warm:2, rec:180, step:2.5},
+    {k:"leg-press", l:"Leg press inclinata", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120, step:5},
+    {k:"leg-extension", l:"Leg extension", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:1, rec:90, step:5},
+    {k:"calf-raise", l:"Calf raise in piedi con bilanciere", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120, step:2.5},
   ]},
   4: {label:"Giorno 4 \u2014 Petto B + Schiena B + Spalle", ex:[
-    {k:"panca-inclinata-bil", l:"Supine Press", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:2, rec:180},
-    {k:"croci-cavi", l:"Croci ai cavi seduto", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90},
-    {k:"lat-stretta", l:"Lat machine presa a V", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120},
-    {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90},
-    {k:"shoulder-press", l:"Shoulder press manubri", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120},
-    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90},
+    {k:"panca-inclinata-bil", l:"Supine Press", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:2, rec:180, step:5},
+    {k:"croci-cavi", l:"Croci ai cavi seduto", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90, step:5},
+    {k:"lat-stretta", l:"Lat machine presa a V", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120, step:5},
+    {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90, step:5},
+    {k:"shoulder-press", l:"Shoulder press manubri", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120, step:2},
+    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2},
   ]},
   5: {label:"Giorno 5 \u2014 Gambe B + Spalle/Braccia", ex:[
-    {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180},
-    {k:"leg-curl", l:"Leg curl", sets:4, repMin:10, repMax:12, rir:[2,2,1,1], warm:1, rec:120},
-    {k:"calf-raise-seduto", l:"Calf raise leg press (ginocchio 90\u00b0)", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120},
-    {k:"alzate-posteriori", l:"Alzate posteriori ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90},
-    {k:"hammer-curl", l:"Hammer curl manubri", sets:3, repMin:10, repMax:12, rir:[1,1,0], warm:1, rec:120},
-    {k:"tricep-overhead", l:"Estensioni tricipiti sopra la testa ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90},
+    {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180, step:2.5},
+    {k:"leg-curl", l:"Leg curl", sets:4, repMin:10, repMax:12, rir:[2,2,1,1], warm:1, rec:120, step:5},
+    {k:"calf-raise-seduto", l:"Calf raise leg press (ginocchio 90\u00b0)", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120, step:5},
+    {k:"alzate-posteriori", l:"Alzate posteriori ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:5},
+    {k:"hammer-curl", l:"Hammer curl manubri", sets:3, repMin:10, repMax:12, rir:[1,1,0], warm:1, rec:120, step:2},
+    {k:"tricep-overhead", l:"Estensioni tricipiti sopra la testa ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:5},
   ]},
 };
 
@@ -563,7 +569,7 @@ function migrateFissoOrfani(){
 function migrateExdbV3(){
   // Dichiarata qui dentro e non fuori: la funzione viene chiamata all'avvio, prima del punto
   // in cui una costante di primo livello sarebbe gia' inizializzata.
-  const EXDB_VERSION = 6;
+  const EXDB_VERSION = 7;
   if(Number(DB.exdbVersion||0) >= EXDB_VERSION) return;
   DB.exdb = JSON.parse(JSON.stringify(DEFAULT_EXDB));
   DB.exdbVersion = EXDB_VERSION;
@@ -575,11 +581,12 @@ function migrateExdbV3(){
 // Non sostituisce mai la scheda: le tue modifiche restano dove sono.
 function reconcileExdbShape(){
   let changed = false;
-  const warmDiDefault = {}, recDiDefault = {};
+  const warmDiDefault = {}, recDiDefault = {}, stepDiDefault = {};
   Object.keys(DEFAULT_EXDB).forEach(g=>{
     (DEFAULT_EXDB[g].ex||[]).forEach(e=>{
       if(e.warm!==undefined) warmDiDefault[e.k] = e.warm;
       if(e.rec) recDiDefault[e.k] = e.rec;
+      if(e.step) stepDiDefault[e.k] = e.step;
     });
   });
   Object.keys(DB.exdb||{}).forEach(g=>{
@@ -593,6 +600,10 @@ function reconcileExdbShape(){
       }
       if(!e.rec){
         e.rec = recDiDefault[e.k] || (e.warm>=2 ? 180 : 120);
+        changed = true;
+      }
+      if(!e.step){
+        e.step = stepDiDefault[e.k] || 2.5;
         changed = true;
       }
       if(!Array.isArray(e.rir)){
@@ -1370,6 +1381,55 @@ function toggleCardio(checked){
 ================================================================================ */
 const GIORNI_GAMBE = [3, 5];
 
+/* ===================== SUGGERIMENTO CARICO (doppia progressione) =====================
+   Regola: si sale di peso solo quando l'ultima volta hai chiuso TUTTE le serie allenanti
+   al massimo del range di ripetizioni E con un RIR pari o inferiore al target.
+   Se le ripetizioni erano al massimo ma il RIR non l'hai segnato, l'app non puo' sapere
+   se eri vicino al cedimento: te lo dice invece di indovinare.
+=================================================================================== */
+function arrotondaAlPasso(v, passo){
+  const p = passo || 2.5;
+  return Math.round(v / p) * p;
+}
+function suggerimentoCarico(e, prev){
+  if(!prev) return null;
+  const kg = prev.kg || [], reps = prev.reps || [], rir = prev.rir || [];
+  const pieno = i => kg[i]!==undefined && kg[i]!=="" && kg[i]!==null
+                  && reps[i]!==undefined && reps[i]!=="" && reps[i]!==null;
+  const serie = [];
+  for(let i=0; i<e.sets; i++){ if(pieno(i)) serie.push(i); }
+  if(!serie.length) return null;
+  if(serie.length < e.sets){
+    return { t:"info", txt:"Ultima volta hai registrato " + serie.length + " serie su " + e.sets + ": nessun suggerimento" };
+  }
+  const passo = e.step || 2.5;
+  const carico = Number(kg[serie[serie.length-1]]);
+  const target = Array.isArray(e.rir) ? e.rir : [];
+  const alMax = serie.every(i => Number(reps[i]) >= e.repMax);
+  const sotto = serie.filter(i => Number(reps[i]) < e.repMin).length;
+  const rirMancante = serie.some(i => rir[i]===undefined || rir[i]==="" || rir[i]===null);
+  const rirOk = serie.every(i => {
+    if(target[i]===undefined) return true;
+    if(rir[i]===undefined || rir[i]==="" || rir[i]===null) return false;
+    return Number(rir[i]) <= Number(target[i]);
+  });
+
+  if(sotto >= 2){
+    return { t:"giu", txt:"Carico troppo alto: scendi a " + arrotondaAlPasso(carico*0.95, passo) + " kg" };
+  }
+  if(alMax && rirOk){
+    return { t:"su", txt:"Sali a " + (carico + passo) + " kg (+" + passo + ")" };
+  }
+  if(alMax && rirMancante){
+    const t0 = target[0]!==undefined ? target[0] : 1;
+    return { t:"forse", txt:"Ripetizioni al massimo, ma manca il RIR. Se eri a RIR " + t0 + " o meno, sali a " + (carico + passo) + " kg" };
+  }
+  if(alMax){
+    return { t:"resta", txt:"Ripetizioni al massimo ma RIR ancora alto: resta a " + carico + " kg e spingi di piu\u0300" };
+  }
+  return { t:"resta", txt:"Resta a " + carico + " kg, punta a " + e.repMax + " ripetizioni su tutte le serie" };
+}
+
 function orderedEx(giorno, wl){
   const base = (DB.exdb[giorno] && Array.isArray(DB.exdb[giorno].ex)) ? DB.exdb[giorno].ex : [];
   const ord = (wl && Array.isArray(wl.order)) ? wl.order : null;
@@ -1413,6 +1473,7 @@ function startRest(seconds, label){
   REST.endsAt = Date.now() + seconds*1000;
   REST.label = label || "";
   REST.beeped = false;
+  programmaBeep(seconds);
   const el = document.getElementById("restTimer");
   if(el) el.classList.add("show");
   if(REST.timerId) clearInterval(REST.timerId);
@@ -1435,30 +1496,82 @@ function tickRest(){
     if(REST.timerId){ clearInterval(REST.timerId); REST.timerId = null; }
   }
 }
-function restAlert(){
-  try{ if(navigator.vibrate) navigator.vibrate([300,120,300]); }catch(e){}
+/* ===================== SUONERIA ANCHE A SCHERMO SPENTO =====================
+   Quando blocchi lo schermo o cambi app, il browser congela i timer JavaScript:
+   un suono "fatto partire allo scadere" non partirebbe mai. Quindi il suono NON
+   viene deciso alla fine, viene PROGRAMMATO all'inizio del recupero dentro il
+   motore audio, al secondo esatto. In piu' resta in riproduzione una traccia
+   silenziosa: finche' una scheda sta emettendo audio il browser non la sospende,
+   ed e' cio' che tiene in vita la programmazione.
+   Non e' garantito al 100% come una sveglia di sistema: se Android chiude del
+   tutto la scheda, non suona. Nell'uso normale in palestra funziona.
+=========================================================================== */
+let AUDIO = { ctx:null, silenzio:null, beep:[] };
+function ensureAudio(){
   try{
     const AC = window.AudioContext || window.webkitAudioContext;
-    if(!AC) return;
-    const ctx = new AC();
-    const osc = ctx.createOscillator(), gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = "sine"; osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
-    osc.start(); osc.stop(ctx.currentTime + 0.85);
+    if(!AC) return null;
+    if(!AUDIO.ctx) AUDIO.ctx = new AC();
+    if(AUDIO.ctx.state === "suspended") AUDIO.ctx.resume();
+    return AUDIO.ctx;
+  }catch(e){ return null; }
+}
+function avviaSilenzio(ctx){
+  if(AUDIO.silenzio) return;
+  try{
+    const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const g = ctx.createGain(); g.gain.value = 0.002;
+    src.connect(g); g.connect(ctx.destination);
+    src.start();
+    AUDIO.silenzio = src;
   }catch(e){}
+}
+function fermaSilenzio(){
+  try{ if(AUDIO.silenzio) AUDIO.silenzio.stop(); }catch(e){}
+  AUDIO.silenzio = null;
+}
+function annullaBeep(){
+  (AUDIO.beep||[]).forEach(o=>{ try{ o.stop(); }catch(e){} });
+  AUDIO.beep = [];
+}
+function programmaBeep(secondi){
+  const ctx = ensureAudio();
+  if(!ctx) return;
+  avviaSilenzio(ctx);
+  annullaBeep();
+  const t0 = ctx.currentTime + Math.max(0, secondi);
+  for(let k=0; k<3; k++){
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = (k===2) ? 1175 : 880;
+    osc.connect(gain); gain.connect(ctx.destination);
+    const s0 = t0 + k*0.42;
+    gain.gain.setValueAtTime(0.0001, s0);
+    gain.gain.exponentialRampToValueAtTime(0.55, s0 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, s0 + 0.34);
+    osc.start(s0); osc.stop(s0 + 0.36);
+    AUDIO.beep.push(osc);
+  }
+}
+function restAlert(){
+  // il suono e' gia' programmato: qui resta solo la vibrazione, che funziona
+  // unicamente se lo schermo e' acceso e l'app in primo piano.
+  try{ if(navigator.vibrate) navigator.vibrate([300,120,300]); }catch(e){}
+  setTimeout(fermaSilenzio, 6000);
 }
 function addRest(sec){
   if(!REST.total) return;
   REST.endsAt += sec*1000;
   REST.total += sec;
   REST.beeped = false;
+  programmaBeep(Math.max(0, (REST.endsAt - Date.now())/1000));
   if(!REST.timerId) REST.timerId = setInterval(tickRest, 250);
   tickRest();
 }
 function stopRest(){
+  annullaBeep(); fermaSilenzio();
   if(REST.timerId){ clearInterval(REST.timerId); REST.timerId = null; }
   REST.total = 0; REST.endsAt = 0;
   const el = document.getElementById("restTimer");
@@ -1517,6 +1630,8 @@ function renderExerciseList(giorno, wl){
         <input class="rirbox ${rirCls}${fuori}" type="number" inputmode="numeric" min="0" max="5" placeholder="${rirPh}" value="${rirV}" onchange="setSetField('${e.k}','rirLog',${i},this.value)">
       </div>`;
     }).join("");
+    const sugg = suggerimentoCarico(e, prev);
+    const suggHtml = sugg ? `<div class="sugg ${sugg.t}">${sugg.t==="su"?"\u2191":sugg.t==="giu"?"\u2193":sugg.t==="forse"?"?":"\u2192"} ${sugg.txt}</div>` : "";
     const prevText = prev
       ? `<span class="prevlabel">Ultima volta: ${niceDate(prev.date)}</span>`
       : `<span class="prevlabel">Nessun dato precedente</span>`;
@@ -1531,6 +1646,7 @@ function renderExerciseList(giorno, wl){
       </div>
       <div class="target">Target: ${e.sets} serie × ${repLabel} ripetizioni${rirLabel} · Recupero ${recLabel(recSec)}</div>
       <div class="prev">${prevText}</div>
+      ${suggHtml}
       <div class="setrows">${nWarm ? warmRows+'<div class="warmsep">serie allenanti</div>' : ""}${setRows}</div>
       <div class="alt">
         <input type="checkbox" style="width:auto;" ${curAlt?"checked":""} onchange="setAlt('${e.k}',this.checked)"> Ho usato un esercizio alternativo
