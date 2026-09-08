@@ -602,6 +602,7 @@ function defaultDB(){
 }
 
 let DB = loadDB();
+rinominaAlimenti();
 reconcileFoodLibrary();
 reconcilePianoFisso();
 migrateFissoOrfani();
@@ -620,6 +621,30 @@ function saveDB(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
 // Tiene allineati i piatti "di serie" (stesso nome) alle macro più recenti definite in DEFAULT_FOODLIB,
 // così le correzioni fatte una volta (es. valori reali presi dal sito Nutribees) si applicano anche
 // a chi ha già l'app installata con dati vecchi salvati. Non tocca alimenti aggiunti/rinominati da te.
+// Alcuni piatti li avevo inseriti in libreria con un nome diverso da quello ufficiale
+// del sito Nutribees, e i valori erano vecchi. Rinominarli una volta sola basta:
+// da li' in poi ci pensa reconcileFoodLibrary ad allineare i macro.
+// Lo storico dei pasti non viene toccato: ogni pasto registrato conserva il nome e i
+// valori che aveva quel giorno.
+function rinominaAlimenti(){
+  const RINOMINA = {
+    "Nutribees Pollo in curcuma con zucchine": "Nutribees Pollo con curcuma e zucchine grigliate"
+  };
+  if(!Array.isArray(DB.foodLibrary)) return;
+  let changed = false;
+  Object.keys(RINOMINA).forEach(vecchio=>{
+    const nuovo = RINOMINA[vecchio];
+    const i = DB.foodLibrary.findIndex(f=>f.name===vecchio);
+    if(i < 0) return;
+    if(DB.foodLibrary.some(f=>f.name===nuovo)){
+      DB.foodLibrary.splice(i,1);      // il nome nuovo c'e' gia': tolgo il doppione
+    } else {
+      DB.foodLibrary[i].name = nuovo;  // rinomino, i valori li sistema il reconcile
+    }
+    changed = true;
+  });
+  if(changed) saveDB();
+}
 function reconcileFoodLibrary(){
   let changed = false;
   DEFAULT_FOODLIB.forEach(def=>{
