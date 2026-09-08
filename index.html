@@ -371,10 +371,10 @@ const ROM_INFO = {
 "err": "Finire il movimento inarcando la lombare invece di stringere i glutei. È così che ci si fa venire la schiena inarcata."
 },
 "leg-curl": {
-"all": "Gambe quasi distese, femorali allungati.",
+"all": "Sdraiato a pancia in giù, anche a contatto con la panca. Gambe quasi distese, femorali allungati.",
 "acc": "Talloni verso i glutei, un secondo di fermo.",
-"tempo": "2 secondi nel ritorno.",
-"err": "Staccare il bacino dal supporto per arrivare più su."
+"tempo": "2 secondi nel ritorno, senza far cadere il peso.",
+"err": "Staccare il bacino dalla panca inarcando la schiena per arrivare più su: così lavora la lombare, non i femorali."
 },
 "calf-raise-seduto": {
 "all": "Talloni giù, solo le punte sulla pedana, fino a sentire tirare.",
@@ -383,10 +383,10 @@ const ROM_INFO = {
 "err": "Stendere le ginocchia. A ginocchio teso alleni i gemelli, che fai già nel G3: qui serve il soleo, quindi ginocchio a 90°."
 },
 "alzate-posteriori": {
-"all": "Braccia in avanti, ferme, nessuno slancio.",
-"acc": "Gomiti all'altezza delle spalle, aperti verso l'esterno.",
-"tempo": "Salita in un secondo, discesa in due.",
-"err": "Tirare con i trapezi. Se senti fra collo e spalla stai usando il muscolo sbagliato: peso bassissimo, scapole ferme."
+"all": "Busto piegato in avanti, o appoggiato a una panca inclinata. Braccia che pendono verso il basso, ferme. <b>Con i manubri qui la tensione è quasi nulla</b>: la parte utile sta nella metà alta del movimento.",
+"acc": "Gomiti all'altezza delle spalle, aperti verso l'esterno. Un secondo di fermo in alto, dove il carico c'è davvero.",
+"tempo": "Salita in un secondo, discesa in due. Nessuno slancio del busto.",
+"err": "Tirare con i trapezi. Se senti fra collo e spalla stai usando il muscolo sbagliato: peso bassissimo, busto fermo, scapole ferme."
 },
 "hammer-curl": {
 "all": "Braccia distese lungo i fianchi, palmi che si guardano.",
@@ -432,9 +432,9 @@ const DEFAULT_EXDB = {
   ]},
   5: {label:"Giorno 5 \u2014 Gambe B + Spalle/Braccia", ex:[
     {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180, step:2.5},
-    {k:"leg-curl", l:"Leg curl", sets:4, repMin:10, repMax:12, rir:[2,2,1,1], warm:1, rec:120, step:5},
+    {k:"leg-curl", l:"Prone Leg curl", sets:4, repMin:10, repMax:12, rir:[2,2,1,1], warm:1, rec:120, step:5},
     {k:"calf-raise-seduto", l:"Calf raise leg press (ginocchio 90\u00b0)", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120, step:5},
-    {k:"alzate-posteriori", l:"Alzate posteriori ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:5},
+    {k:"alzate-posteriori", l:"Alzate posteriori manubri", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2},
     {k:"hammer-curl", l:"Hammer curl manubri", sets:3, repMin:10, repMax:12, rir:[1,1,0], warm:1, rec:120, step:2},
     {k:"tricep-overhead", l:"Estensioni tricipiti sopra la testa ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:5},
   ]},
@@ -741,7 +741,7 @@ function migrateFissoOrfani(){
 function migrateExdbV3(){
   // Dichiarata qui dentro e non fuori: la funzione viene chiamata all'avvio, prima del punto
   // in cui una costante di primo livello sarebbe gia' inizializzata.
-  const EXDB_VERSION = 7;
+  const EXDB_VERSION = 8;
   if(Number(DB.exdbVersion||0) >= EXDB_VERSION) return;
   DB.exdb = JSON.parse(JSON.stringify(DEFAULT_EXDB));
   DB.exdbVersion = EXDB_VERSION;
@@ -1147,6 +1147,12 @@ function renderOggi(app){
   const giornoOggi = doneOggi ? wlOggi.giorno : computeNextGiorno();
 
   let banners = "";
+  // Il giorno dopo una seduta gambe non ci si allena: e' la regola che tiene in piedi
+  // tutto lo schema. E' un avviso, non un blocco.
+  const wlIeri = DB.workoutLog[yest];
+  if(wlIeri && wlIeri.done && GIORNI_GAMBE.indexOf(wlIeri.giorno) >= 0){
+    banners += `<div class="banner bad" style="border-width:2px;"><b>\u{1F6D1} Oggi \u00e8 riposo.</b> Ieri hai fatto <b>${DB.exdb[wlIeri.giorno].label}</b>, e il giorno dopo le gambe non ci si allena. La prossima seduta \u00e8 da domani.</div>`;
+  }
   if(totalsYest.kcal>0 && totalsYest.kcal < 1500){
     banners += `<div class="banner bad">⚠️ Ieri sotto le 1500 kcal (${Math.round(totalsYest.kcal)}). Aspettati meno lucidità ed energia nelle call di oggi — recupera con calma, non saltare i prossimi pasti.</div>`;
   }
@@ -1875,7 +1881,13 @@ function setSetField(exKey, field, setIdx, val){
   if(field === "repsLog" && val !== "" && selDate === todayStr()){
     const g = wl.giorno || computeNextGiorno();
     const ex = (DB.exdb[g] && DB.exdb[g].ex || []).find(x=>x.k===exKey);
-    startRest(recForEx(exKey, g), (ex ? ex.l : "") + " · serie " + (setIdx+1) + " fatta");
+    // Nessun recupero dopo l'ultima serie allenante: da li' passi all'esercizio
+    // successivo, e lo spostamento fa gia' da pausa.
+    if(ex && (setIdx + 1) >= ex.sets){
+      stopRest();
+    } else {
+      startRest(recForEx(exKey, g), (ex ? ex.l : "") + " · serie " + (setIdx+1) + " fatta");
+    }
   }
   render();
 }
