@@ -579,7 +579,7 @@ function defaultDB(){
   return {
     version:1,
     targets:{kcal:2350, pro:158, carb:280, fat:70},
-    targetWeight: 71,
+    targetWeight: 78,
     programStart: todayStr(),
     weeklyTarget: 5, // sessioni attese a settimana, solo per il grafico di aderenza
     meals: {},
@@ -602,6 +602,7 @@ function defaultDB(){
 }
 
 let DB = loadDB();
+migraPesoObiettivo();
 rinominaAlimenti();
 reconcileFoodLibrary();
 reconcilePianoFisso();
@@ -626,6 +627,15 @@ function saveDB(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
 // da li' in poi ci pensa reconcileFoodLibrary ad allineare i macro.
 // Lo storico dei pasti non viene toccato: ogni pasto registrato conserva il nome e i
 // valori che aveva quel giorno.
+// Il vecchio obiettivo di 71 kg nasceva dal BMI e ignorava la massa magra: con 64,6 kg
+// di massa magra misurata, 71 kg significherebbe il 9% di grasso. Il primo traguardo
+// sensato e' 78 kg (circa 18%). Una volta sola, e solo se il valore e' ancora quello vecchio.
+function migraPesoObiettivo(){
+  if(DB.targetWeightV2) return;
+  if(Number(DB.targetWeight) === 71) DB.targetWeight = 78;
+  DB.targetWeightV2 = true;
+  saveDB();
+}
 function rinominaAlimenti(){
   const RINOMINA = {
     "Nutribees Pollo in curcuma con zucchine": "Nutribees Pollo con curcuma e zucchine grigliate"
@@ -1192,6 +1202,13 @@ function renderOggi(app){
   const pesoFattoSettimana = DB.pesoLog.some(p=>p.date>=lunediSettimana && p.date<=t);
   if(!pesoFattoSettimana){
     banners += `<div class="banner warn">⚖️ Questa settimana manca ancora la pesata${ritardo}. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
+  }
+  // La percentuale di grasso serve una volta a settimana: come dato singolo e' rumoroso,
+  // e' il trend su piu' settimane che conta. Lo chiedo solo se la pesata c'e' gia',
+  // altrimenti sarebbero due avvisi che dicono la stessa cosa.
+  const bfFattaSettimana = DB.pesoLog.some(p=>p.date>=lunediSettimana && p.date<=t && typeof p.bf === "number");
+  if(pesoFattoSettimana && !bfFattaSettimana){
+    banners += `<div class="banner warn">\u{1F4CA} Questa settimana manca la <b>percentuale di grasso</b>. Una lettura basta, sempre nelle stesse condizioni: appena sveglio, a digiuno, dopo il bagno. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
   }
   const fotoFattaSettimana = DB.fotoLog.some(f=>f.date>=lunediSettimana && f.date<=t);
   if(!fotoFattaSettimana){
@@ -2201,7 +2218,7 @@ function renderImpostazioni(app){
         <div class="field"><label class="f">Carb (g)</label><input type="number" id="tCarb" value="${DB.targets.carb}"></div>
         <div class="field"><label class="f">Grassi (g)</label><input type="number" id="tFat" value="${DB.targets.fat}"></div>
       </div>
-      <div class="field"><label class="f">Peso obiettivo (kg)</label><input type="number" id="tWeight" inputmode="decimal" step="0.5" value="${DB.targetWeight||71}"></div>
+      <div class="field"><label class="f">Peso obiettivo (kg)</label><input type="number" id="tWeight" inputmode="decimal" step="0.5" value="${DB.targetWeight||78}"></div>
       <button class="btn primary block" onclick="saveTargets()">Salva target</button>
     </div>
 
@@ -2293,7 +2310,7 @@ function saveTargets(){
     carb: Number(document.getElementById("tCarb").value)||0,
     fat: Number(document.getElementById("tFat").value)||0,
   };
-  DB.targetWeight = Number(document.getElementById("tWeight").value)||71;
+  DB.targetWeight = Number(document.getElementById("tWeight").value)||78;
   saveDB(); toast("Target salvati");
 }
 function saveProgramStart(){
