@@ -181,6 +181,24 @@
   .setrow .rirbox.rir1{border-color:#a76a12;color:#dda247;}
   .setrow .rirbox.rir0{border-color:#c23a1d;color:#fff;background:#c23a1d;}
   .exercise .alt{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);}
+  .exercise .alt{flex-wrap:wrap;}
+  .exercise.skipped{opacity:.75;border-style:dashed;}
+  .exercise.skipped .exname{text-decoration:line-through;color:var(--muted);}
+  .subbadge{display:inline-block;font-size:11px;font-weight:700;border-radius:7px;padding:4px 8px;
+    background:var(--gold-dim);color:var(--gold-light);border:1px solid var(--gold);}
+  .subbadge.skip{background:var(--red-dim);color:var(--red-light);border-color:var(--red);}
+  .sostbox{margin-top:8px;background:var(--card);border:1px solid var(--gold-dim);border-radius:10px;padding:10px;}
+  .sosttitle{font-size:11.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+    color:var(--gold-light);margin:2px 0 8px;}
+  .sostnote{font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:8px;}
+  .sostbox .btn.block{margin-bottom:6px;text-align:left;display:block;line-height:1.35;}
+  .sostmeta{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:2px;
+    letter-spacing:0;text-transform:none;font-family:inherit;}
+  .sostbox .btn.consigliato{background:var(--green);border-color:var(--green-light);color:#F2F5EC;}
+  .sostbox .btn.consigliato .sostmeta{color:#D6E3C6;}
+  .sostbox .btn.warnpick{border-color:var(--amber);}
+  .sostbox .btn.warnpick .sostmeta{color:var(--amber-light);}
+  .sostbox .mus{font-size:10.5px;font-weight:600;color:var(--gold-light);text-transform:none;letter-spacing:0;}
   .daysel{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px;}
   .daysel button{flex:0 0 auto;background:var(--card2);border:1px solid var(--border);color:var(--muted);
     border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;white-space:nowrap;}
@@ -1525,7 +1543,7 @@ function renderAllenamento(app){
   document.getElementById("headerTitle").textContent = "Palestra";
   document.getElementById("headerSub").textContent = niceDate(selDate);
 
-  const wl = DB.workoutLog[selDate] || {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, warmKg:{}, warmReps:{}, useAlt:{}, useAltNote:{}};
+  const wl = DB.workoutLog[selDate] || {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, warmKg:{}, warmReps:{}, useAlt:{}, useAltNote:{}, sub:{}};
   const giorno = wl.giorno || computeNextGiorno();
   const info = DB.exdb[giorno];
 
@@ -1575,7 +1593,7 @@ function renderDateStripW(){
 }
 function ensureWL(){
   if(!DB.workoutLog[selDate]){
-    DB.workoutLog[selDate] = {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, warmKg:{}, warmReps:{}, useAlt:{}, useAltNote:{}};
+    DB.workoutLog[selDate] = {giorno: computeNextGiorno(), done:false, skipped:false, cardioDone:false, pesi:{}, repsLog:{}, rirLog:{}, warmKg:{}, warmReps:{}, useAlt:{}, useAltNote:{}, sub:{}};
   }
   return DB.workoutLog[selDate];
 }
@@ -1600,6 +1618,197 @@ function toggleCardio(checked){
    dura quanto dice il campo "rec" di quell'esercizio (180 / 120 / 90 secondi).
 ================================================================================ */
 const GIORNI_GAMBE = [3, 5];
+
+/* ===================== SOSTITUZIONE ESERCIZIO =========================
+   Un attrezzo occupato o un muscolo ancora indolenzito non devono mandare
+   all'aria la seduta ne' sporcare lo storico. La sostituzione vive dentro
+   la sessione del giorno, MAI nella scheda:
+       wl.sub[slotK] = { k: "<esercizio-fatto>" | "__skip__", motivo }
+   I numeri finiscono sotto la chiave dell'esercizio REALMENTE eseguito,
+   quindi "Ultima volta" e il suggerimento di carico confrontano sempre lo
+   stesso esercizio con se stesso. Lo slot sostituito non riceve nulla:
+   il suo prossimo suggerimento guardera' l'ultima volta vera.
+   Due motivi, due liste opposte:
+     attrezzo  -> altri esercizi per LO STESSO muscolo (il muscolo sta bene)
+     recupero  -> il muscolo non va allenato: si salta, oppure si lavora
+                  un ALTRO muscolo sapendo che e' volume in piu', non un
+                  recupero di quello perso.
+====================================================================== */
+const MUSCOLO = {
+  "panca-piana":"petto", "panca-inclinata-30":"petto", "chest-fly":"petto",
+  "panca-inclinata-bil":"petto", "croci-cavi":"petto",
+  "tricep-pushdown":"tricipiti", "tricep-overhead":"tricipiti",
+  "lat-machine":"dorso", "rematore-bil":"dorso", "cable-row":"dorso",
+  "lat-stretta":"dorso", "pulley-basso":"dorso",
+  "face-pull":"deltoide posteriore", "alzate-posteriori":"deltoide posteriore",
+  "curl-ez":"bicipiti", "hammer-curl":"bicipiti",
+  "squat":"quadricipiti", "leg-press":"quadricipiti", "leg-extension":"quadricipiti",
+  "calf-raise":"polpacci", "calf-raise-seduto":"polpacci",
+  "hip-thrust":"glutei", "leg-curl":"femorali",
+  "shoulder-press":"spalle", "alzate-laterali":"deltoide laterale",
+};
+function muscoloDi(k){ return MUSCOLO[k] || "altro"; }
+function exByKey(k){
+  for(let g=1; g<=5; g++){
+    const day = DB.exdb[g];
+    if(!day || !Array.isArray(day.ex)) continue;
+    const e = day.ex.find(x=>x.k===k);
+    if(e) return e;
+  }
+  return null;
+}
+// Esercizio da mostrare e su cui registrare per uno slot della giornata.
+function exEffettivo(slot, wl){
+  const sb = wl && wl.sub && wl.sub[slot.k];
+  if(!sb) return {e:slot, sub:null};
+  if(sb.k === "__skip__") return {e:null, sub:sb};
+  const alt = exByKey(sb.k);
+  if(!alt) return {e:slot, sub:null};   // esercizio sparito dalla scheda: si torna all'originale
+  return {e:alt, sub:sb};
+}
+// Chiavi gia' impegnate oggi: due blocchi di serie sulla stessa chiave si
+// sovrascriverebbero a vicenda, quindi non si puo' scegliere quello che c'e' gia'.
+function chiaviOccupateOggi(giorno, wl, escludiSlot){
+  const occ = {};
+  orderedEx(giorno, wl).forEach(sl=>{
+    if(sl.k === escludiSlot) return;
+    const sb = wl.sub && wl.sub[sl.k];
+    if(sb && sb.k && sb.k !== "__skip__") occ[sb.k] = true;
+    else if(!sb) occ[sl.k] = true;
+  });
+  return occ;
+}
+// Giorni dall'ultima volta che quel muscolo ha ricevuto lavoro. 0 = oggi.
+function giorniDaMuscolo(muscolo, fino){
+  const dates = Object.keys(DB.workoutLog).filter(d=>d <= fino).sort().reverse();
+  for(const d of dates){
+    const w = DB.workoutLog[d];
+    if(!w || !w.pesi) continue;
+    const trovato = Object.keys(w.pesi).some(k=>
+      muscoloDi(k) === muscolo && Array.isArray(w.pesi[k])
+      && w.pesi[k].some(v=>v!=="" && v!==undefined && v!==null));
+    if(trovato) return Math.round((new Date(fino) - new Date(d)) / 86400000);
+  }
+  return null;
+}
+// Fra quante SEDUTE quel muscolo torna in programma (1 = la prossima).
+// Conto sedute e non giorni: il ciclo e' ancorato agli allenamenti fatti,
+// non al calendario, quindi i giorni non li so.
+function sedutePrimaDi(muscolo, giornoCorrente){
+  let g = Number(giornoCorrente) || 1;
+  for(let i=1; i<=5; i++){
+    g = (g % 5) + 1;
+    const day = DB.exdb[g];
+    if(day && Array.isArray(day.ex) && day.ex.some(e=>muscoloDi(e.k)===muscolo)) return {gap:i, giorno:g};
+  }
+  return null;
+}
+function candidatiSost(slotK, motivo, giorno, wl){
+  const mio = muscoloDi(slotK);
+  const occ = chiaviOccupateOggi(giorno, wl, slotK);
+  const out = [];
+  for(let g=1; g<=5; g++){
+    const day = DB.exdb[g];
+    if(!day || !Array.isArray(day.ex)) continue;
+    day.ex.forEach(e=>{
+      if(e.k === slotK || occ[e.k]) return;
+      const m = muscoloDi(e.k);
+      if(motivo === "attrezzo"){ if(m !== mio) return; }
+      else { if(m === mio) return; }
+      out.push(e);
+    });
+  }
+  if(motivo === "recupero"){
+    out.forEach(e=>{
+      e.__gg = giorniDaMuscolo(muscoloDi(e.k), selDate);
+      const nx = sedutePrimaDi(muscoloDi(e.k), giorno);
+      e.__gap = nx ? nx.gap : 9;
+      e.__warn = (e.__gg === 0) || e.__gap <= 2;
+    });
+    out.sort((a,b)=>{
+      if(a.__warn !== b.__warn) return a.__warn ? 1 : -1;
+      const ga = a.__gg===null ? 999 : a.__gg, gb = b.__gg===null ? 999 : b.__gg;
+      if(ga !== gb) return gb - ga;
+      return b.__gap - a.__gap;
+    });
+  }
+  return out;
+}
+var SOST = { slot:null, motivo:null };
+function apriSost(slotK){ SOST = {slot:slotK, motivo:null}; render(); }
+function chiudiSost(){ SOST = {slot:null, motivo:null}; render(); }
+function setMotivoSost(m){ SOST.motivo = m; render(); }
+function applicaSost(slotK, newK, motivo){
+  const wl = ensureWL();
+  if(!wl.sub) wl.sub = {};
+  wl.sub[slotK] = {k:newK, motivo:motivo};
+  SOST = {slot:null, motivo:null};
+  saveDB();
+  toast(newK === "__skip__" ? "Esercizio saltato per oggi" : "Sostituito solo per oggi");
+  render();
+}
+function annullaSost(slotK){
+  const wl = ensureWL();
+  if(wl.sub) delete wl.sub[slotK];
+  SOST = {slot:null, motivo:null};
+  saveDB(); toast("Sostituzione annullata"); render();
+}
+function etichettaMotivo(m){
+  return m === "attrezzo" ? "attrezzo non disponibile" : "muscolo non ancora recuperato";
+}
+function pannelloSost(slot, giorno, wl){
+  if(!SOST.motivo){
+    return `<div class="sostbox">
+      <div class="sosttitle">Perche\u0301 cambi?</div>
+      <button class="btn small block" onclick="setMotivoSost('attrezzo')">Attrezzo occupato o non disponibile</button>
+      <button class="btn small block" onclick="setMotivoSost('recupero')">Muscolo non ancora recuperato</button>
+      <button class="btn small ghost block" onclick="chiudiSost()">Annulla</button>
+    </div>`;
+  }
+  const mio = muscoloDi(slot.k);
+  const cand = candidatiSost(slot.k, SOST.motivo, giorno, wl);
+  if(SOST.motivo === "attrezzo"){
+    if(!cand.length){
+      return `<div class="sostbox">
+        <div class="sosttitle">Nessuna alternativa in scheda per ${mio}</div>
+        <div class="sostnote">Fermati e recupera: aspetta che si liberi e poi fai l'esercizio come da scheda.
+        Non c'e\u0300 un altro esercizio in scheda che alleni ${mio} senza doppiare qualcosa di oggi.</div>
+        <button class="btn small ghost block" onclick="applicaSost('${slot.k}','__skip__','attrezzo')">Non riesco proprio: segna come saltato</button>
+        <button class="btn small ghost block" onclick="chiudiSost()">Annulla</button>
+      </div>`;
+    }
+    return `<div class="sostbox">
+      <div class="sosttitle">Stesso muscolo &mdash; ${mio}</div>
+      ${cand.map(c=>`<button class="btn small block" onclick="applicaSost('${slot.k}','${c.k}','attrezzo')">
+        <b>${c.l}</b><span class="sostmeta">${c.sets} serie \u00d7 ${c.repMin===c.repMax ? c.repMin : c.repMin+"-"+c.repMax} ripetizioni</span>
+      </button>`).join("")}
+      <button class="btn small ghost block" onclick="chiudiSost()">Annulla</button>
+    </div>`;
+  }
+  const righe = cand.map(c=>{
+    const m = muscoloDi(c.k);
+    const gg = c.__gg;
+    const quando = gg === null ? "mai allenato finora"
+      : gg === 0 ? "gia\u0300 allenato oggi"
+      : gg === 1 ? "ultima volta ieri"
+      : "ultima volta " + gg + " giorni fa";
+    const nxt = c.__gap >= 9 ? "" : (c.__gap === 1 ? " \u00b7 torna in programma alla prossima seduta"
+      : " \u00b7 torna in programma fra " + c.__gap + " sedute");
+    return `<button class="btn small block ${c.__warn ? "warnpick" : ""}" onclick="applicaSost('${slot.k}','${c.k}','recupero')">
+      <b>${c.l}</b> <span class="mus">${m}</span>
+      <span class="sostmeta">${c.__warn ? "\u26a0\ufe0f " : ""}${quando}${nxt}</span>
+    </button>`;
+  }).join("");
+  return `<div class="sostbox">
+    <button class="btn small block consigliato" onclick="applicaSost('${slot.k}','__skip__','recupero')">
+      <b>Salto e basta</b>
+      <span class="sostmeta">Consigliato: il volume su un altro muscolo non recupera quello perso, e spesso ruba freschezza alla seduta in cui era programmato</span>
+    </button>
+    <div class="sosttitle">Oppure allena un altro muscolo</div>
+    ${righe || `<div class="sostnote">Nessun altro esercizio disponibile oggi.</div>`}
+    <button class="btn small ghost block" onclick="chiudiSost()">Annulla</button>
+  </div>`;
+}
 
 /* ===================== SUGGERIMENTO CARICO (doppia progressione) =====================
    Regola: si sale di peso solo quando l'ultima volta hai chiuso TUTTE le serie allenanti
@@ -1698,9 +1907,11 @@ function resetOrdine(){
   saveDB(); toast("Ordine ripristinato"); render();
 }
 function recForEx(exKey, giorno){
+  // L'esercizio puo' arrivare da un altro giorno della scheda (sostituzione),
+  // quindi se non e' nella giornata corrente lo cerco ovunque.
   const day = DB.exdb[giorno];
-  if(!day) return 120;
-  const e = (day.ex||[]).find(x=>x.k===exKey);
+  let e = day ? (day.ex||[]).find(x=>x.k===exKey) : null;
+  if(!e) e = exByKey(exKey);
   return (e && e.rec) ? e.rec : 120;
 }
 function recLabel(sec){
@@ -1828,22 +2039,39 @@ function renderExerciseList(giorno, wl){
   const info = DB.exdb[giorno];
   const ordinati = orderedEx(giorno, wl);
   const ordineCustom = Array.isArray(wl.order) && wl.order.length;
+  const nSost = wl.sub ? Object.keys(wl.sub).length : 0;
   el.innerHTML = `<h3 class="section">${info.label}</h3>`
     + (ordineCustom ? `<div class="banner warn" style="margin-bottom:10px;">Ordine cambiato solo per oggi. La scheda non e' stata toccata. <button class="btn small" style="margin-top:8px;" onclick="resetOrdine()">Ripristina ordine</button></div>` : "")
-    + ordinati.map(e=>{
+    + (nSost ? `<div class="banner warn" style="margin-bottom:10px;">${nSost === 1 ? "Un esercizio sostituito" : nSost + " esercizi sostituiti"} solo per oggi. La scheda non e' stata toccata.</div>` : "")
+    + ordinati.map(slot=>{
+    // Lo slot e' la casella della scheda; l'esercizio mostrato puo' essere un
+    // altro, se oggi l'hai sostituito. I dati seguono sempre l'esercizio fatto.
+    const eff = exEffettivo(slot, wl);
+    const sub = eff.sub;
+    const pannello = (SOST.slot === slot.k) ? pannelloSost(slot, giorno, wl) : "";
+
+    if(sub && sub.k === "__skip__"){
+      return `<div class="exercise skipped">
+        <div class="exhead"><div class="exname">${slot.l}</div></div>
+        <div class="alt">
+          <span class="subbadge skip">Saltato oggi &mdash; ${etichettaMotivo(sub.motivo)}</span>
+          <button class="btn small ghost" onclick="annullaSost('${slot.k}')">Annulla</button>
+        </div>
+      </div>`;
+    }
+
+    const e = eff.e;
     const prev = lastWorkoutFor(e.k, addDays(selDate,-1));
     const curKg = (wl.pesi && Array.isArray(wl.pesi[e.k])) ? wl.pesi[e.k] : [];
     const curReps = (wl.repsLog && Array.isArray(wl.repsLog[e.k])) ? wl.repsLog[e.k] : [];
     const curRir = (wl.rirLog && Array.isArray(wl.rirLog[e.k])) ? wl.rirLog[e.k] : [];
     const curWk = (wl.warmKg && Array.isArray(wl.warmKg[e.k])) ? wl.warmKg[e.k] : [];
     const curWr = (wl.warmReps && Array.isArray(wl.warmReps[e.k])) ? wl.warmReps[e.k] : [];
-    const curAlt = wl.useAlt && wl.useAlt[e.k];
-    const curAltNote = (wl.useAltNote && wl.useAltNote[e.k]) || "";
     const repLabel = e.repMin===e.repMax ? `${e.repMin}` : `${e.repMin}-${e.repMax}`;
     const rirTarget = Array.isArray(e.rir) ? e.rir : [];
-    const rirLabel = rirTarget.length ? ` · RIR <b class="rirtgt">${rirTarget.join(" / ")}</b>` : "";
+    const rirLabel = rirTarget.length ? ` \u00b7 RIR <b class="rirtgt">${rirTarget.join(" / ")}</b>` : "";
     // Massimo due avvicinamenti: non contano come serie allenanti, non entrano
-    // nei totali, nei grafici, nello storico né nel "ultima volta".
+    // nei totali, nei grafici, nello storico ne' nel "ultima volta".
     const primoCarico = prev && prev.kg[0]!==undefined && prev.kg[0]!=="" ? Number(prev.kg[0]) : null;
     const suggWarm = q => primoCarico ? String(Math.round(primoCarico*q/2.5)*2.5) : "kg";
     const nWarm = e.warm===undefined ? 2 : Math.max(0, Math.min(2, e.warm));
@@ -1853,7 +2081,7 @@ function renderExerciseList(giorno, wl){
       return `<div class="setrow warm">
         <div class="setlabel">Avvic. ${i+1}</div>
         <input type="number" inputmode="decimal" step="0.5" placeholder="${suggWarm(nWarm===1 ? 0.7 : (i===0?0.5:0.7))}" value="${wkV}" onchange="setSetField('${e.k}','warmKg',${i},this.value)">
-        <span class="x">×</span>
+        <span class="x">\u00d7</span>
         <input type="number" inputmode="numeric" placeholder="${nWarm===1 ? 6 : (i===0?8:5)}" value="${wrV}" onchange="setSetField('${e.k}','warmReps',${i},this.value)">
         <span class="warmtag">non conta</span>
       </div>`;
@@ -1870,7 +2098,7 @@ function renderExerciseList(giorno, wl){
       return `<div class="setrow">
         <div class="setlabel">Serie ${i+1}</div>
         <input type="number" inputmode="decimal" step="0.5" placeholder="${kgPh}" value="${kgV}" onchange="setSetField('${e.k}','pesi',${i},this.value)">
-        <span class="x">×</span>
+        <span class="x">\u00d7</span>
         <input type="number" inputmode="numeric" placeholder="${repPh}" value="${repV}" onchange="setSetField('${e.k}','repsLog',${i},this.value)">
         <input class="rirbox ${rirCls}${fuori}" type="number" inputmode="numeric" min="0" max="5" placeholder="${rirPh}" value="${rirV}" onchange="setSetField('${e.k}','rirLog',${i},this.value)">
       </div>`;
@@ -1891,23 +2119,25 @@ function renderExerciseList(giorno, wl){
       ? `<span class="prevlabel">Ultima volta: ${niceDate(prev.date)}</span>`
       : `<span class="prevlabel">Nessun dato precedente</span>`;
     const recSec = e.rec || 120;
+    const piede = sub
+      ? `<span class="subbadge">Al posto di ${slot.l} &mdash; ${etichettaMotivo(sub.motivo)}</span>
+         <button class="btn small ghost" onclick="annullaSost('${slot.k}')">Annulla sostituzione</button>`
+      : `<button class="btn small ghost" onclick="apriSost('${slot.k}')">Sostituisci esercizio</button>`;
     return `<div class="exercise">
       <div class="exhead">
         <div class="exname">${e.l}</div>
         <div class="exmove">
-          <button class="btn small" onclick="moveExercise(-1,'${e.k}')" title="Sposta su">&#8593;</button>
-          <button class="btn small" onclick="moveExercise(1,'${e.k}')" title="Sposta giù">&#8595;</button>
+          <button class="btn small" onclick="moveExercise(-1,'${slot.k}')" title="Sposta su">&#8593;</button>
+          <button class="btn small" onclick="moveExercise(1,'${slot.k}')" title="Sposta gi\u00f9">&#8595;</button>
         </div>
       </div>
-      <div class="target">Target: ${e.sets} serie × ${repLabel} ripetizioni${rirLabel} · Recupero ${recLabel(recSec)}</div>
+      <div class="target">Target: ${e.sets} serie \u00d7 ${repLabel} ripetizioni${rirLabel} \u00b7 Recupero ${recLabel(recSec)}</div>
       ${romHtml}
       <div class="prev">${prevText}</div>
       ${suggHtml}
       <div class="setrows">${nWarm ? warmRows+'<div class="warmsep">serie allenanti</div>' : ""}${setRows}</div>
-      <div class="alt">
-        <input type="checkbox" style="width:auto;" ${curAlt?"checked":""} onchange="setAlt('${e.k}',this.checked)"> Ho usato un esercizio alternativo
-      </div>
-      ${curAlt ? `<div class="field" style="margin-top:6px;"><input type="text" placeholder="Quale esercizio hai usato?" value="${curAltNote}" onchange="setAltNote('${e.k}',this.value)"></div>` : ""}
+      <div class="alt">${piede}</div>
+      ${pannello}
     </div>`;
   }).join("");
 }
@@ -1922,7 +2152,8 @@ function setSetField(exKey, field, setIdx, val){
   // Solo per la giornata di oggi: se stai sistemando un log vecchio non ha senso.
   if(field === "repsLog" && val !== "" && selDate === todayStr()){
     const g = wl.giorno || computeNextGiorno();
-    const ex = (DB.exdb[g] && DB.exdb[g].ex || []).find(x=>x.k===exKey);
+    let ex = (DB.exdb[g] && DB.exdb[g].ex || []).find(x=>x.k===exKey);
+    if(!ex) ex = exByKey(exKey);   // esercizio entrato oggi per sostituzione
     // Nessun recupero dopo l'ultima serie allenante: da li' passi all'esercizio
     // successivo, e lo spostamento fa gia' da pausa.
     if(ex && (setIdx + 1) >= ex.sets){
