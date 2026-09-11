@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0A0A0A">
+<meta name="theme-color" content="#080807">
 <title>Hustler Fitness Tracker</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -257,6 +257,18 @@
     border:1px solid var(--border);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;
     z-index:50;opacity:0;pointer-events:none;transition:opacity .25s;}
   .toast.show{opacity:1;}
+  /* v23 - avvisi fissi: spazio esaurito (rosso) e nuova versione (verde) */
+  .fixedalert{position:fixed;left:12px;right:12px;bottom:80px;z-index:70;display:none;border-radius:12px;
+    padding:11px 12px;font-size:13px;line-height:1.4;border:1px solid;box-shadow:0 10px 28px rgba(0,0,0,.55);}
+  .fixedalert.show{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .fixedalert.bad{background:#3a1010;border-color:rgba(220,38,38,.6);color:#FCA5A5;}
+  .fixedalert.ok{background:#12240e;border-color:rgba(22,163,74,.55);color:#86EFAC;}
+  .fixedalert span{flex:1;font-weight:700;}
+  .photocell{position:relative;}
+  .photocell img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block;background:var(--card2);}
+  .photocell .pdate{position:absolute;left:4px;bottom:4px;font-size:10px;background:rgba(0,0,0,.65);color:#fff;padding:2px 5px;border-radius:5px;}
+  .photocell .pdel{position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:50%;border:none;
+    background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:24px;padding:0;text-align:center;}
 </style>
 </head>
 <body>
@@ -281,6 +293,15 @@
   <div class="bar"></div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="fixedalert bad" id="storageAlert">
+  <b>Spazio esaurito: le modifiche NON vengono salvate.</b>
+  Vai in Impostazioni, esporta i dati e libera spazio eliminando qualche foto in Progressi. L'avviso sparisce da solo appena un salvataggio riesce.
+</div>
+<div class="fixedalert ok" id="updateAlert">
+  <span>Nuova versione pronta.</span>
+  <button class="btn small primary" onclick="location.reload()">Aggiorna ora</button>
+  <button class="btn small ghost" onclick="document.getElementById('updateAlert').classList.remove('show')">Dopo</button>
+</div>
 
 <script>
 /* ============================= DATA LAYER ============================= */
@@ -670,7 +691,28 @@ function loadDB(){
     return Object.assign(defaultDB(), parsed);
   }catch(e){ return defaultDB(); }
 }
-function saveDB(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+/* v23 - Salvataggio che non fallisce in silenzio.
+   localStorage ha un tetto (circa 5 milioni di caratteri su Chrome): superato quello,
+   setItem lancia QuotaExceededError e, senza questo blocco, ogni modifica successiva
+   sembrava salvata ma spariva alla riapertura. Ora l'errore accende un avviso rosso
+   fisso che resta finche' un salvataggio non va a buon fine. */
+// "var" e non "let": saveDB() viene chiamata dalle migrazioni all'avvio, prima che
+// questa riga sia eseguita. Con "let" sarebbe zona morta temporale e schermata nera.
+var STORAGE_KO = false;
+function saveDB(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(DB));
+    if(STORAGE_KO){ STORAGE_KO = false; mostraAvvisoStorage(false); }
+  }catch(e){
+    STORAGE_KO = true;
+    mostraAvvisoStorage(true);
+  }
+}
+function mostraAvvisoStorage(on){
+  const el = document.getElementById("storageAlert");
+  if(!el) return;
+  el.classList.toggle("show", !!on);
+}
 // Tiene allineati i piatti "di serie" (stesso nome) alle macro più recenti definite in DEFAULT_FOODLIB,
 // così le correzioni fatte una volta (es. valori reali presi dal sito Nutribees) si applicano anche
 // a chi ha già l'app installata con dati vecchi salvati. Non tocca alimenti aggiunti/rinominati da te.
@@ -767,6 +809,56 @@ function toast(msg){
 }
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
+/* ---- v23: foto in IndexedDB ------------------------------------------------
+   Le foto pesano 90-150 mila caratteri l'una e stavano in localStorage insieme
+   a tutto il resto: con il tetto di ~5 milioni di caratteri, 3 foto a settimana
+   riempivano tutto in 4-5 mesi, e da li' nessun salvataggio andava piu' a buon fine.
+   Ora l'immagine sta in IndexedDB (centinaia di MB disponibili) e in DB.fotoLog
+   resta solo la scheda {id, date, note, idb:true}. Le foto gia' salvate vengono
+   spostate una volta sola all'avvio (migraFotoInIdb). Export e import le portano
+   con se' nel campo fotoData. Se IndexedDB non esiste si torna al vecchio modo. */
+var FOTO_DB = "hustlerFoto", FOTO_STORE = "foto"; // var: vedi nota su STORAGE_KO
+function fotoDb(){
+  return new Promise((res, rej)=>{
+    if(!window.indexedDB) return rej(new Error("IndexedDB non disponibile"));
+    const r = indexedDB.open(FOTO_DB, 1);
+    r.onupgradeneeded = ()=>{ r.result.createObjectStore(FOTO_STORE); };
+    r.onsuccess = ()=>res(r.result);
+    r.onerror = ()=>rej(r.error);
+  });
+}
+function fotoTx(mode, fn){
+  return fotoDb().then(db=>new Promise((res, rej)=>{
+    const tx = db.transaction(FOTO_STORE, mode);
+    const out = fn(tx.objectStore(FOTO_STORE));
+    tx.oncomplete = ()=>{ db.close(); res(out && out.result !== undefined ? out.result : true); };
+    tx.onerror = ()=>{ db.close(); rej(tx.error); };
+  }));
+}
+function fotoPut(id, dataUrl){ return fotoTx("readwrite", st=>st.put(dataUrl, id)); }
+function fotoDel(id){ return fotoTx("readwrite", st=>st.delete(id)); }
+function fotoClear(){ return fotoTx("readwrite", st=>st.clear()); }
+function fotoAll(){
+  return fotoDb().then(db=>new Promise((res, rej)=>{
+    const out = {};
+    const st = db.transaction(FOTO_STORE, "readonly").objectStore(FOTO_STORE);
+    const cur = st.openCursor();
+    cur.onsuccess = ()=>{ const c = cur.result; if(c){ out[c.key] = c.value; c.continue(); } else { db.close(); res(out); } };
+    cur.onerror = ()=>{ db.close(); rej(cur.error); };
+  }));
+}
+async function migraFotoInIdb(){
+  const daSpostare = (DB.fotoLog||[]).filter(f=>f && f.dataUrl);
+  if(!daSpostare.length) return false;
+  for(const f of daSpostare){
+    try{ await fotoPut(f.id, f.dataUrl); }
+    catch(e){ return false; }   // niente IndexedDB: si resta in localStorage
+    delete f.dataUrl; f.idb = true;
+  }
+  saveDB();
+  return true;
+}
+
 /* ---- Storico immutabile ------------------------------------------------
    Prima i totali di un giorno passato venivano ricalcolati sui valori ATTUALI
    dell'alimento: modificarlo riscriveva la storia, eliminarlo la faceva sparire.
@@ -830,9 +922,44 @@ function migrateExdbV3(){
   // in cui una costante di primo livello sarebbe gia' inizializzata.
   const EXDB_VERSION = 8;
   if(Number(DB.exdbVersion||0) >= EXDB_VERSION) return;
-  DB.exdb = JSON.parse(JSON.stringify(DEFAULT_EXDB));
+  /* v23 - Migrazione per chiave, non piu' sostituzione in blocco.
+     Prima ogni aggiornamento della scheda cancellava tutto cio' che era stato fatto
+     dall'editor (esercizi aggiunti, rinominati, serie cambiate) senza dire niente.
+     Ora: gli esercizi con la stessa chiave prendono i valori prescritti dal default
+     (serie, ripetizioni, RIR, avvicinamenti, recupero, passo, nome); i nuovi vengono
+     aggiunti; quelli tolti dal default spariscono, MA gli esercizi creati dall'editor
+     (chiave che inizia per "nuovo-esercizio-") restano dove sono, in coda al giorno.
+     La scheda precedente viene conservata in DB.exdbPrecedente e si puo' rimettere
+     dall'editor in Impostazioni. */
+  const vecchia = DB.exdb ? JSON.parse(JSON.stringify(DB.exdb)) : null;
+  const nuova = JSON.parse(JSON.stringify(DEFAULT_EXDB));
+  if(vecchia){
+    Object.keys(nuova).forEach(g=>{
+      const vd = vecchia[g];
+      if(!vd || !Array.isArray(vd.ex)) return;
+      const chiaviNuove = {};
+      nuova[g].ex.forEach(e=>{ chiaviNuove[e.k] = true; });
+      vd.ex.forEach(e=>{
+        if(e && e.k && !chiaviNuove[e.k] && /^nuovo-esercizio-/.test(e.k)) nuova[g].ex.push(JSON.parse(JSON.stringify(e)));
+      });
+    });
+    DB.exdbPrecedente = {versione: Number(DB.exdbVersion||0), data: todayStr(), exdb: vecchia};
+  }
+  DB.exdb = nuova;
   DB.exdbVersion = EXDB_VERSION;
   saveDB();
+}
+function ripristinaSchedaPrecedente(){
+  const p = DB.exdbPrecedente;
+  if(!p || !p.exdb) return;
+  if(!confirm("Rimettere la scheda che avevi prima dell'aggiornamento del " + niceDate(p.data) + "? Le prescrizioni nuove (serie, RIR, recuperi) andranno perse: al prossimo aggiornamento della scheda verranno riproposte.")) return;
+  DB.exdb = JSON.parse(JSON.stringify(p.exdb));
+  delete DB.exdbPrecedente;
+  saveDB(); toast("Scheda precedente ripristinata"); render();
+}
+function scartaSchedaPrecedente(){
+  delete DB.exdbPrecedente;
+  saveDB(); render();
 }
 // Riparazione non distruttiva: completa i campi mancanti senza toccare il resto.
 // Serve per gli esercizi che aggiungi tu dall'editor, che nascono senza avvicinamenti e
@@ -1216,8 +1343,35 @@ function render(){
   if(currentTab==="impostazioni") return renderImpostazioni(app);
 }
 
+/* v23 - Tasto Indietro di Android.
+   Dentro un'app installata (PWA o TWA) non c'e' barra del browser: senza voci
+   nella cronologia, Indietro chiudeva l'app. Ora ogni tab diverso da "Oggi" e'
+   una voce di cronologia: Indietro torna a Oggi, e da Oggi esce. Un pannello di
+   sostituzione aperto viene chiuso prima di cambiare tab. */
+function vaiATab(tab, opts){
+  const o = opts || {};
+  currentTab = tab;
+  if(!o.daPopstate && window.history && history.pushState){
+    try{
+      if(tab === "oggi"){
+        if(history.state && history.state.tab && history.state.tab !== "oggi"){ history.back(); return; }
+      } else if(history.state && history.state.tab && history.state.tab !== "oggi"){
+        history.replaceState({tab}, "");
+      } else {
+        history.pushState({tab}, "");
+      }
+    }catch(e){}
+  }
+  render(); window.scrollTo(0,0);
+}
+window.addEventListener("popstate", (ev)=>{
+  if(SOST && SOST.slot){ SOST = {slot:null, motivo:null}; }
+  const tab = (ev.state && ev.state.tab) || "oggi";
+  vaiATab(tab, {daPopstate:true});
+});
+try{ if(history.replaceState) history.replaceState({tab:"oggi"}, ""); }catch(e){}
 document.querySelectorAll("nav.tabs button").forEach(b=>{
-  b.addEventListener("click", ()=>{ currentTab=b.dataset.tab; render(); window.scrollTo(0,0); });
+  b.addEventListener("click", ()=>vaiATab(b.dataset.tab));
 });
 
 /* ============================= TAB: OGGI ============================= */
@@ -1332,9 +1486,9 @@ function macroBar(label, val, target, unit){
     <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>
   </div>`;
 }
-function goToPasti(date){ selDate=date; currentTab="pasti"; render(); window.scrollTo(0,0); }
-function goToAllenamento(date){ selDate=date; currentTab="allenamento"; render(); window.scrollTo(0,0); }
-function goToProgressi(){ currentTab="progressi"; render(); window.scrollTo(0,0); }
+function goToPasti(date){ selDate=date; vaiATab("pasti"); }
+function goToAllenamento(date){ selDate=date; vaiATab("allenamento"); }
+function goToProgressi(){ vaiATab("progressi"); }
 
 /* ============================= TAB: PASTI ============================= */
 function renderPasti(app){
@@ -1587,7 +1741,7 @@ function renderAllenamento(app){
     <div class="card">
       <div class="row between" style="margin-bottom:10px;">
         <h2 style="margin:0;">Giorno di scheda</h2>
-        ${wl.done ? '<span class="pill ok">Fatto</span>' : wl.skipped ? '<span class="pill bad">Saltato</span>' : '<span class="pill muted">Da fare</span>'}
+        <span id="wlStatusPill">${pillStatoSeduta(wl)}</span>
       </div>
       <div class="field">
         <select id="giornoSelect" onchange="changeGiorno(this.value)">
@@ -1609,15 +1763,35 @@ function renderAllenamento(app){
       </div>
     </div>`}
 
-    <div class="row" style="gap:8px;margin-top:6px;">
-      <button class="btn block" style="background:var(--card2);" onclick="markSkipped()">Segna saltato</button>
-      ${wl.done
-        ? `<button class="btn block" style="border-color:var(--red);color:#F87171;" onclick="markUndone()">Annulla completamento</button>`
-        : `<button class="btn primary block" onclick="markDone()">Segna fatto ✓</button>`}
-    </div>
+    <div class="row" id="wlActions" style="gap:8px;margin-top:6px;">${bottoniStatoSeduta(wl)}</div>
   `;
   renderDateStripW();
   renderExerciseList(giorno, wl);
+}
+function pillStatoSeduta(wl){
+  return wl.done ? '<span class="pill ok">Fatto</span>' : wl.skipped ? '<span class="pill bad">Saltato</span>' : '<span class="pill muted">Da fare</span>';
+}
+function bottoniStatoSeduta(wl){
+  return `<button class="btn block" style="background:var(--card2);" onclick="markSkipped()">Segna saltato</button>
+      ${wl.done
+        ? `<button class="btn block" style="border-color:var(--red);color:#F87171;" onclick="markUndone()">Annulla completamento</button>`
+        : `<button class="btn primary block" onclick="markDone()">Segna fatto ✓</button>`}`;
+}
+// v23 - Dopo un numero inserito si aggiornano solo i pezzi che cambiano davvero
+// (stato della seduta, striscia date, colore del RIR), non tutta la pagina:
+// cosi' il campo con il focus resta dov'e', "Avanti" della tastiera funziona e
+// le sezioni aperte non si richiudono.
+function aggiornaStatoSeduta(){
+  const wl = DB.workoutLog[selDate];
+  if(!wl) return;
+  const p = document.getElementById("wlStatusPill"); if(p) p.innerHTML = pillStatoSeduta(wl);
+  const a = document.getElementById("wlActions"); if(a) a.innerHTML = bottoniStatoSeduta(wl);
+  renderDateStripW();
+}
+function classeRir(rirV, target){
+  const cls = rirV===0 || rirV==="0" ? "rir0" : (rirV===1 || rirV==="1" ? "rir1" : (rirV===2 || rirV==="2" ? "rir2" : ""));
+  const fuori = rirV!=="" && target!==undefined && Number(rirV)!==Number(target) ? " fuoritarget" : "";
+  return "rirbox " + cls + fuori;
 }
 function renderDateStripW(){
   const strip = document.getElementById("dateStripW");
@@ -2104,7 +2278,8 @@ function stopRest(){
    Lo stato "aperto/chiuso" dei riquadri non e' un dato: sta in memoria.
 ================================================================= */
 function notaUI(){
-  if(!window.__notaUI) window.__notaUI = {fissaAperta:{}, oggiAperta:{}};
+  if(!window.__notaUI) window.__notaUI = {fissaAperta:{}, oggiAperta:{}, romAperta:{}};
+  if(!window.__notaUI.romAperta) window.__notaUI.romAperta = {};
   return window.__notaUI;
 }
 function escH(v){
@@ -2258,9 +2433,9 @@ function renderExerciseList(giorno, wl){
       const wrV = curWr[i]!==undefined && curWr[i]!==null ? curWr[i] : "";
       return `<div class="setrow warm">
         <div class="setlabel">Avvic. ${i+1}</div>
-        <input type="number" inputmode="decimal" step="0.5" placeholder="${suggWarm(nWarm===1 ? 0.7 : (i===0?0.5:0.7))}" value="${wkV}" onchange="setSetField('${e.k}','warmKg',${i},this.value)">
+        <input type="number" id="sf_warmKg_${e.k}_${i}" inputmode="decimal" step="0.5" placeholder="${suggWarm(nWarm===1 ? 0.7 : (i===0?0.5:0.7))}" value="${wkV}" onchange="setSetField('${e.k}','warmKg',${i},this.value)">
         <span class="x">\u00d7</span>
-        <input type="number" inputmode="numeric" placeholder="${nWarm===1 ? 6 : (i===0?8:5)}" value="${wrV}" onchange="setSetField('${e.k}','warmReps',${i},this.value)">
+        <input type="number" id="sf_warmReps_${e.k}_${i}" inputmode="numeric" placeholder="${nWarm===1 ? 6 : (i===0?8:5)}" value="${wrV}" onchange="setSetField('${e.k}','warmReps',${i},this.value)">
         <span class="warmtag">non conta</span>
       </div>`;
     }).join("");
@@ -2270,19 +2445,17 @@ function renderExerciseList(giorno, wl){
       const kgPh = prev && prev.kg[i]!==undefined && prev.kg[i]!==null && prev.kg[i]!=="" ? prev.kg[i] : "kg";
       const repPh = prev && prev.reps[i]!==undefined && prev.reps[i]!==null && prev.reps[i]!=="" ? prev.reps[i] : "rip";
       const rirV = curRir[i]!==undefined && curRir[i]!==null ? curRir[i] : "";
-      const rirCls = rirV===0 || rirV==="0" ? "rir0" : (rirV===1 || rirV==="1" ? "rir1" : (rirV===2 || rirV==="2" ? "rir2" : ""));
       const rirPh = rirTarget[i]!==undefined ? "RIR "+rirTarget[i] : "RIR";
-      const fuori = rirV!=="" && rirTarget[i]!==undefined && Number(rirV)!==Number(rirTarget[i]) ? " fuoritarget" : "";
       return `<div class="setrow">
         <div class="setlabel">Serie ${i+1}</div>
-        <input type="number" inputmode="decimal" step="0.5" placeholder="${kgPh}" value="${kgV}" onchange="setSetField('${e.k}','pesi',${i},this.value)">
+        <input type="number" id="sf_pesi_${e.k}_${i}" inputmode="decimal" step="0.5" placeholder="${kgPh}" value="${kgV}" onchange="setSetField('${e.k}','pesi',${i},this.value)">
         <span class="x">\u00d7</span>
-        <input type="number" inputmode="numeric" placeholder="${repPh}" value="${repV}" onchange="setSetField('${e.k}','repsLog',${i},this.value)">
-        <input class="rirbox ${rirCls}${fuori}" type="number" inputmode="numeric" min="0" max="5" placeholder="${rirPh}" value="${rirV}" onchange="setSetField('${e.k}','rirLog',${i},this.value)">
+        <input type="number" id="sf_repsLog_${e.k}_${i}" inputmode="numeric" placeholder="${repPh}" value="${repV}" onchange="setSetField('${e.k}','repsLog',${i},this.value)">
+        <input class="${classeRir(rirV, rirTarget[i])}" id="sf_rirLog_${e.k}_${i}" type="number" inputmode="numeric" min="0" max="5" placeholder="${rirPh}" value="${rirV}" onchange="setSetField('${e.k}','rirLog',${i},this.value)">
       </div>`;
     }).join("");
     const rom = ROM_INFO[e.k];
-    const romHtml = rom ? `<details class="rom">
+    const romHtml = rom ? `<details class="rom" ${notaUI().romAperta[e.k] ? "open" : ""} ontoggle="notaUI().romAperta['${e.k}']=this.open">
         <summary>Esecuzione e ROM</summary>
         <div class="rombody">
           <div class="r"><div class="k">Allungamento</div><div>${rom.all}</div></div>
@@ -2384,7 +2557,17 @@ function setSetField(exKey, field, setIdx, val){
       startRest(recForEx(exKey, g), (ex ? ex.l : "") + " · serie " + (setIdx+1) + " fatta");
     }
   }
-  render();
+  // v23 - niente render() completo: si aggiornano solo stato seduta e colore del RIR,
+  // cosi' il focus resta sul campo e la tastiera non si chiude.
+  if(field === "rirLog"){
+    const inp = document.getElementById(`sf_rirLog_${exKey}_${setIdx}`);
+    if(inp){
+      let ex2 = exByKey(exKey);
+      const tgt = ex2 && Array.isArray(ex2.rir) ? ex2.rir[setIdx] : undefined;
+      inp.className = classeRir(wl.rirLog[exKey][setIdx], tgt);
+    }
+  }
+  aggiornaStatoSeduta();
 }
 function setAlt(exKey, checked){
   const wl = ensureWL();
@@ -2463,7 +2646,8 @@ function renderProgressi(app){
       <div class="field">
         <select id="exHistorySelect" onchange="selectedExForHistory=this.value; render();">
           <option value="">Scegli un esercizio...</option>
-          ${allExerciseDefs().map(e=>`<option value="${e.k}" ${selectedExForHistory===e.k?"selected":""}>${e.l}</option>`).join("")}
+          ${allExerciseDefs().map(e=>`<option value="${escH(e.k)}" ${selectedExForHistory===e.k?"selected":""}>${escH(e.l)}</option>`).join("")}
+          ${(()=>{ const fs = exerciseDefsFuoriScheda(); return fs.length ? `<optgroup label="Non più in scheda">${fs.map(e=>`<option value="${escH(e.k)}" ${selectedExForHistory===e.k?"selected":""}>${escH(e.l)}</option>`).join("")}</optgroup>` : ""; })()}
         </select>
       </div>
       ${selectedExForHistory ? renderExerciseHistoryHtml(selectedExForHistory) : `<div class="empty">Seleziona un esercizio per vedere peso e ripetizioni registrati sessione per sessione</div>`}
@@ -2478,13 +2662,32 @@ function renderProgressi(app){
       ${renderPhotoGrid()}
     </div>
   `;
+  caricaFotoGrid();
 }
 function allExerciseDefs(){
   const out = [];
   Object.values(DB.exdb).forEach(day=>{
-    day.ex.forEach(e=>{ if(!out.find(x=>x.k===e.k)) out.push(e); });
+    (day.ex||[]).forEach(e=>{ if(!out.find(x=>x.k===e.k)) out.push(e); });
   });
   return out;
+}
+// v23 - Esercizi che non sono piu' in scheda ma hanno serie registrate (i 5 tolti
+// il 4 settembre, o quelli eliminati dall'editor): lo storico c'e', va solo mostrato.
+function exerciseDefsFuoriScheda(){
+  const inScheda = {};
+  allExerciseDefs().forEach(e=>{ inScheda[e.k] = true; });
+  const trovati = {};
+  Object.keys(DB.workoutLog||{}).forEach(d=>{
+    const w = DB.workoutLog[d];
+    Object.keys((w && w.pesi) || {}).forEach(k=>{
+      if(inScheda[k] || trovati[k]) return;
+      if(Array.isArray(w.pesi[k]) && w.pesi[k].some(v=>v!=="" && v!==null && v!==undefined)) trovati[k] = true;
+    });
+  });
+  return Object.keys(trovati).sort().map(k=>({k, l: etichettaChiave(k)}));
+}
+function etichettaChiave(k){
+  return String(k).split("-").filter(Boolean).map((p,i)=> i===0 ? p.charAt(0).toUpperCase()+p.slice(1) : p).join(" ");
 }
 function renderExerciseHistoryHtml(exKey){
   const conPesi = d => {
@@ -2636,10 +2839,42 @@ function renderComposizione(peso){
 function renderPhotoGrid(){
   if(!DB.fotoLog.length) return `<div class="empty">Nessuna foto ancora</div>`;
   const sorted = [...DB.fotoLog].sort((a,b)=>b.date.localeCompare(a.date));
-  return `<div class="photogrid">${sorted.map(f=>
-    f.dataUrl ? `<img src="${f.dataUrl}" onclick="alert('${f.date}${f.note?" — "+f.note.replace(/'/g,""):""}')">` :
-    `<div class="stat" style="aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-size:10px;">${f.date}<br>(no img)</div>`
-  ).join("")}</div>`;
+  // Le immagini in IndexedDB arrivano dopo (caricaFotoGrid): qui si mette il posto.
+  return `<div class="photogrid" id="photoGrid">${sorted.map(f=>{
+    const src = f.dataUrl ? f.dataUrl : "";
+    if(!src && !f.idb) return `<div class="stat" style="aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-size:10px;">${f.date}<br>(no img)</div>`;
+    return `<div class="photocell">
+      <img ${src ? `src="${src}"` : `data-fid="${escH(f.id)}"`} alt="Foto del ${niceDate(f.date)}" onclick="mostraFoto(this)">
+      <span class="pdate">${f.date.slice(5)}</span>
+      <button class="pdel" onclick="eliminaFoto('${escH(f.id)}')" title="Elimina foto">×</button>
+    </div>`;
+  }).join("")}</div>`;
+}
+function caricaFotoGrid(){
+  const imgs = document.querySelectorAll("#photoGrid img[data-fid]");
+  if(!imgs.length) return;
+  fotoAll().then(all=>{
+    imgs.forEach(im=>{ const d = all[im.dataset.fid]; if(d) im.src = d; });
+  }).catch(()=>{});
+}
+function mostraFoto(img){
+  if(!img.src) return;
+  const ov = document.createElement("div");
+  ov.id = "fotoOverlay";
+  ov.style = "position:fixed;inset:0;background:#000;z-index:100;display:flex;flex-direction:column;";
+  ov.innerHTML = `<img src="${img.src}" alt="" style="flex:1;min-height:0;width:100%;object-fit:contain;">
+    <div style="padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:center;color:#8B93A7;font-size:13px;">
+      <span>${escH(img.alt)}</span><button class="btn small" onclick="document.getElementById('fotoOverlay').remove()">Chiudi</button></div>`;
+  document.body.appendChild(ov);
+}
+function eliminaFoto(id){
+  const f = DB.fotoLog.find(x=>x.id===id);
+  if(!f) return;
+  if(!confirm("Eliminare la foto del " + niceDate(f.date) + "? Non si puo' annullare.")) return;
+  DB.fotoLog = DB.fotoLog.filter(x=>x.id!==id);
+  saveDB();
+  if(f.idb) fotoDel(id).catch(()=>{});
+  toast("Foto eliminata"); render();
 }
 function addPhoto(input){
   const file = input.files[0];
@@ -2655,12 +2890,21 @@ function addPhoto(input){
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img,0,0,canvas.width,canvas.height);
       const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
-      DB.fotoLog.push({id:uid(), date: todayStr(), note:"", dataUrl});
-      saveDB(); toast("Foto salvata"); render();
+      const rec = {id:uid(), date: todayStr(), note:""};
+      fotoPut(rec.id, dataUrl).then(()=>{
+        rec.idb = true;
+        DB.fotoLog.push(rec); saveDB(); toast("Foto salvata"); render();
+      }).catch(()=>{
+        // niente IndexedDB: vecchio modo, dentro localStorage
+        rec.dataUrl = dataUrl;
+        DB.fotoLog.push(rec); saveDB();
+        toast(STORAGE_KO ? "Spazio esaurito: foto NON salvata" : "Foto salvata"); render();
+      });
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
+  input.value = "";
 }
 
 /* ============================= TAB: IMPOSTAZIONI ============================= */
@@ -2726,7 +2970,10 @@ function renderImpostazioni(app){
       <h2>Editor scheda</h2>
       <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">
         Modifica esercizi, serie e target ripetizioni per ogni giorno. Le modifiche si salvano da sole.
+        Quando arriva una nuova versione della scheda, gli esercizi che hai aggiunto tu restano; serie e target degli esercizi di serie vengono riallineati.
       </div>
+      ${DB.exdbPrecedente && DB.exdbPrecedente.exdb ? `<div class="banner warn">La scheda è stata aggiornata il ${niceDate(DB.exdbPrecedente.data)}. Quella che avevi prima è conservata.
+        <div class="row" style="gap:8px;margin-top:8px;"><button class="btn small" onclick="ripristinaSchedaPrecedente()">Rimetti la precedente</button><button class="btn small ghost" onclick="scartaSchedaPrecedente()">Ok, tieni la nuova</button></div></div>` : ""}
       <div class="daysel" id="editorDaysel"></div>
       <div id="editorBody"></div>
       <button class="btn block" onclick="resetSchedaDefault()" style="margin-top:10px;border-color:var(--red);color:#F87171;">Ripristina scheda di default</button>
@@ -2745,6 +2992,7 @@ function renderImpostazioni(app){
 
     <div class="card settingsgroup">
       <h2>Backup e dati</h2>
+      <div id="storageInfo" style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Calcolo lo spazio…</div>
       <button class="btn block" style="margin-bottom:8px;" onclick="exportData()">⬇️ Esporta dati (JSON)</button>
       <input type="file" id="importInput" accept="application/json" style="display:none;" onchange="importData(this)">
       <button class="btn block" style="margin-bottom:8px;" onclick="document.getElementById('importInput').click()">⬆️ Importa export tracker esistente</button>
@@ -2754,13 +3002,40 @@ function renderImpostazioni(app){
     <div class="card">
       <h2>Info</h2>
       <div style="font-size:12.5px;color:var(--muted);line-height:1.5;">
-        Tutti i dati restano solo su questo telefono (localStorage del browser). Non c'è account, non c'è server:
-        fai backup ogni tanto con "Esporta dati" se cambi telefono o svuoti la cache del browser.
+        Tutti i dati restano solo su questo telefono (memoria del browser: localStorage per i dati, IndexedDB per le foto).
+        Non c'è account, non c'è server: fai backup ogni tanto con "Esporta dati" se cambi telefono o svuoti i dati di Chrome.
+        Disinstallare l'app non cancella i dati; "Cancella dati di navigazione" in Chrome sì.
       </div>
     </div>
   `;
   renderSchedaEditor();
   renderPianoFissoEditor();
+  aggiornaStorageInfo();
+}
+// v23 - quanto spazio usano i dati, e se Android puo' cancellarli da solo.
+async function aggiornaStorageInfo(){
+  const el = document.getElementById("storageInfo");
+  if(!el) return;
+  const chars = (localStorage.getItem(STORE_KEY)||"").length;
+  const MAX = 5000000; // tetto pratico di localStorage su Chrome, in caratteri
+  const pct = Math.round(chars/MAX*100);
+  const nFoto = (DB.fotoLog||[]).length;
+  let righe = [`Dati dell'app: <b>${(chars/1000).toFixed(0)} k</b> caratteri su circa ${MAX/1000000} milioni (${pct}%)${pct>=80 ? ' <span class="pill bad">quasi pieno</span>' : ''}`];
+  righe.push(`Foto progressi: <b>${nFoto}</b>` + (nFoto ? " (in IndexedDB, fuori dal limite qui sopra)" : ""));
+  try{
+    if(navigator.storage && navigator.storage.estimate){
+      const est = await navigator.storage.estimate();
+      if(est && est.usage!==undefined && est.quota){
+        righe.push(`Spazio totale usato dal sito: <b>${(est.usage/1048576).toFixed(1)} MB</b> su ${(est.quota/1048576/1024).toFixed(1)} GB disponibili`);
+      }
+    }
+    if(navigator.storage && navigator.storage.persisted){
+      const p = await navigator.storage.persisted();
+      righe.push(p ? `Archiviazione protetta: <span class="pill ok">sì</span> — Android non cancella questi dati per liberare spazio`
+                   : `Archiviazione protetta: <span class="pill warn">no</span> — Android potrebbe svuotarla se il telefono resta senza spazio. Fai backup.`);
+    }
+  }catch(e){}
+  el.innerHTML = righe.join("<br>");
 }
 function saveTargets(){
   DB.targets = {
@@ -2962,13 +3237,18 @@ function resetPianoFissoDefault(){
   DB.pianoFisso = JSON.parse(JSON.stringify(DEFAULT_PIANO_FISSO));
   saveDB(); toast("Piano fisso ripristinato"); render();
 }
-function exportData(){
-  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:"application/json"});
+async function exportData(){
+  // v23 - le foto stanno in IndexedDB: nel file di backup viaggiano in fotoData {id: dataUrl}
+  let fotoData = {};
+  try{ fotoData = await fotoAll(); }catch(e){ fotoData = {}; }
+  const out = Object.assign({}, DB, {fotoData});
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = `hustler-tracker-backup-${todayStr()}.json`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+  toast("Backup pronto: " + Object.keys(fotoData).length + " foto incluse");
 }
 function importData(input){
   const file = input.files[0];
@@ -2981,10 +3261,15 @@ function importData(input){
       // Backup nativo dell'app (creato con "Esporta dati" da questa stessa app):
       // ripristino completo e diretto, nessuna perdita di foto/ripetizioni/scheda personalizzata.
       if(old.version===1 && old.exdb){
+        const fotoData = old.fotoData || {};
+        delete old.fotoData;
         DB = Object.assign(defaultDB(), old);
         saveDB();
-        toast("Backup ripristinato");
-        render();
+        // v23 - foto del backup in IndexedDB, poi eventuali foto vecchie ancora inline
+        const ids = Object.keys(fotoData);
+        Promise.all(ids.map(id=>fotoPut(id, fotoData[id]))).catch(()=>{})
+          .then(()=>migraFotoInIdb())
+          .then(()=>{ toast("Backup ripristinato" + (ids.length ? " con " + ids.length + " foto" : "")); render(); });
         return;
       }
 
@@ -3032,6 +3317,7 @@ function importData(input){
 function wipeData(){
   if(!confirm("Cancellare TUTTI i dati salvati su questo telefono? Non si può annullare.")) return;
   localStorage.removeItem(STORE_KEY);
+  fotoClear().catch(()=>{});
   DB = defaultDB();
   toast("Dati cancellati");
   render();
@@ -3039,9 +3325,56 @@ function wipeData(){
 
 /* ============================= INIT ============================= */
 render();
+
+/* v23 - Cambio giorno con l'app rimasta aperta.
+   Un'app installata resta viva in background per giorni: prima selDate restava
+   fermo al giorno dell'apertura e la colazione finiva registrata su ieri.
+   Ogni volta che l'app torna visibile, se la data e' cambiata si riparte da oggi. */
+let GIORNO_MOSTRATO = todayStr();
+function controllaCambioGiorno(){
+  const oggi = todayStr();
+  if(oggi === GIORNO_MOSTRATO) return;
+  GIORNO_MOSTRATO = oggi;
+  selDate = oggi;
+  SOST = {slot:null, motivo:null};
+  render();
+  toast("Nuovo giorno: " + niceDate(oggi));
+}
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) controllaCambioGiorno(); });
+window.addEventListener("focus", controllaCambioGiorno);
+window.addEventListener("pageshow", controllaCambioGiorno);
+setInterval(controllaCambioGiorno, 60000);
+
+/* v23 - Archiviazione protetta: senza questa richiesta Android puo' svuotare i dati
+   del sito quando lo spazio scarseggia. Esito visibile in Impostazioni > Backup e dati. */
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
+
+// v23 - foto gia' salvate in localStorage: spostate in IndexedDB una volta sola
+migraFotoInIdb().then(ok=>{ if(ok && currentTab==="progressi") render(); }).catch(()=>{});
+
+/* v23 - Aggiornamenti: il service worker nuovo si installa alla prima apertura ma la
+   pagina in uso e' ancora quella vecchia. Invece di chiedere di "aprire due volte",
+   quando il nuovo worker e' pronto compare il banner "Aggiorna ora". */
 if("serviceWorker" in navigator){
   window.addEventListener("load", ()=>{
-    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+    navigator.serviceWorker.register("service-worker.js").then(reg=>{
+      const segnala = (w)=>{
+        if(!w) return;
+        w.addEventListener("statechange", ()=>{
+          if(w.state === "installed" && navigator.serviceWorker.controller){
+            const el = document.getElementById("updateAlert");
+            if(el) el.classList.add("show");
+          }
+        });
+      };
+      if(reg.waiting && navigator.serviceWorker.controller){
+        const el = document.getElementById("updateAlert"); if(el) el.classList.add("show");
+      }
+      segnala(reg.installing);
+      reg.addEventListener("updatefound", ()=>segnala(reg.installing));
+      // controlla se c'e' una versione nuova ogni volta che l'app torna in primo piano
+      document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) reg.update().catch(()=>{}); });
+    }).catch(()=>{});
   });
 }
 </script>
