@@ -161,6 +161,33 @@
   .sugg.giu{background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.35);color:#FCA5A5;}
   .sugg.forse{background:rgba(217,119,6,.1);border-color:rgba(217,119,6,.35);color:#FCD34D;}
   .sugg.resta,.sugg.info{background:var(--card2);color:var(--muted);font-weight:600;}
+  /* v21 - note dell'esercizio (fissa, con video) e della seduta (perche' il carico e' cambiato) */
+  details.rom.mynote summary{color:var(--muted);border-color:var(--border);}
+  details.rom.mynote.piena summary{color:var(--gold-light);border-color:var(--gold-dim);}
+  details.rom.mynote .rombody{border-color:var(--border);}
+  details.rom.mynote.piena .rombody{border-color:var(--gold-dim);}
+  .mynote textarea,.notaoggi textarea{font-size:13px;line-height:1.45;padding:8px 9px;resize:vertical;min-height:44px;}
+  .notelbl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:10px 0 5px;}
+  .notelbl:first-child{margin-top:0;}
+  .vidrow{display:flex;align-items:center;gap:6px;margin-top:6px;}
+  .vidrow a.vid{flex:1;min-width:0;display:block;text-decoration:none;font-size:12.5px;font-weight:700;
+    color:#0A0A0A;background:var(--gold-light);border-radius:8px;padding:8px 10px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .vidrow .btn{flex:0 0 auto;}
+  .vidadd{display:flex;gap:6px;margin-top:6px;}
+  .vidadd input{font-size:12.5px;padding:8px;min-width:0;}
+  .vidadd input.u{flex:3;} .vidadd input.t{flex:2;}
+  .vidvuoto{font-size:11.5px;color:var(--muted);}
+  .notaoggi{margin-top:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px;}
+  .chiptec{display:inline-block;font-size:11.5px;font-weight:700;border-radius:8px;padding:6px 9px;margin-bottom:7px;
+    border:1px dashed var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;}
+  .chiptec.on{border-style:solid;border-color:var(--amber);background:rgba(217,119,6,.14);color:var(--amber-light);}
+  .prevnota{font-size:11.5px;color:var(--muted);line-height:1.45;margin:-4px 0 8px;padding:6px 9px;
+    border-left:2px solid var(--amber);background:rgba(217,119,6,.06);border-radius:0 8px 8px 0;white-space:pre-wrap;}
+  .prevnota b,.histnota b{color:var(--amber-light);}
+  .histnota{font-size:11px;color:var(--muted);margin-top:3px;white-space:pre-wrap;line-height:1.4;}
+  .cardiorow{display:flex;align-items:center;gap:8px;}
+  .cardiorow input[type=number]{width:72px;flex:0 0 72px;text-align:center;padding:7px 6px;}
   .exhead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
   .exmove{display:flex;gap:4px;flex:0 0 auto;}
   .exmove button{padding:2px 8px;font-size:14px;line-height:1.4;min-width:30px;}
@@ -615,6 +642,7 @@ function defaultDB(){
     foodLibrary: JSON.parse(JSON.stringify(DEFAULT_FOODLIB)),
     barcodeCache: {},
     exdb: JSON.parse(JSON.stringify(DEFAULT_EXDB)),
+    exNote: {}, // v21 - note fisse per esercizio {k:{txt, links:[{u,t}]}}. FUORI da exdb: la migrazione della scheda non le tocca.
     exdbVersion: 0, // 0 = scheda da migrare. La migrazione lo porta a 3 dopo aver sostituito exdb.
   };
 }
@@ -1019,7 +1047,8 @@ function lastWorkoutFor(exKey, beforeDate){
     if(Array.isArray(kgArr) && kgArr.some(v=>v!=="" && v!==undefined && v!==null)){
       const repArr = (w.repsLog && w.repsLog[exKey]) || [];
       const rirArr = (w.rirLog && w.rirLog[exKey]) || [];
-      return {date:d, kg:kgArr, reps:repArr, rir:rirArr};
+      const nota = (w.exNota && w.exNota[exKey]) || null;
+      return {date:d, kg:kgArr, reps:repArr, rir:rirArr, nota};
     }
   }
   return null;
@@ -1565,9 +1594,13 @@ function renderAllenamento(app){
 
     ${GIORNI_GAMBE.includes(giorno) ? "" : `
     <div class="card">
-      <label class="row" style="gap:8px;font-size:14px;font-weight:700;">
-        <input type="checkbox" id="cardioCheck" style="width:auto;" ${wl.cardioDone?"checked":""} onchange="toggleCardio(this.checked)"> Cardio 10 minuti
-      </label>
+      <div class="cardiorow">
+        <label class="row" style="gap:8px;font-size:14px;font-weight:700;flex:1;">
+          <input type="checkbox" id="cardioCheck" style="width:auto;" ${wl.cardioDone?"checked":""} onchange="toggleCardio(this.checked)"> Cardio
+        </label>
+        <input type="number" id="cardioMin" inputmode="numeric" min="1" max="300" step="1" value="${minutiCardio(wl)}" onchange="setCardioMin(this.value)">
+        <span style="font-size:13px;color:var(--muted);font-weight:600;">minuti</span>
+      </div>
     </div>`}
 
     <div class="row" style="gap:8px;margin-top:6px;">
@@ -1606,6 +1639,21 @@ function toggleCardio(checked){
   const wl = ensureWL();
   wl.cardioDone = checked;
   saveDB();
+}
+// v21 - Durata del cardio. Prima era fissa a 10 minuti: le sedute vecchie senza
+// il campo valgono 10. Scrivere i minuti vuol dire che il cardio l'hai fatto,
+// quindi spunta anche la casella. Qualsiasi durata, sopra o sotto i 10.
+function minutiCardio(wl){
+  const m = Number(wl && wl.cardioMin);
+  return m > 0 ? m : 10;
+}
+function setCardioMin(v){
+  const wl = ensureWL();
+  const m = Math.round(Number(v));
+  if(!(m > 0)){ delete wl.cardioMin; saveDB(); render(); return; }
+  wl.cardioMin = Math.min(m, 300);
+  wl.cardioDone = true;
+  saveDB(); render();
 }
 /* ===================== GIORNI GAMBE, ORDINE, TIMER RECUPERO =====================
    GIORNI_GAMBE: nei giorni gambe il cardio non compare proprio, cosi' le gambe
@@ -2034,6 +2082,129 @@ function stopRest(){
   if(el){ el.classList.remove("show"); el.classList.remove("done"); }
 }
 
+/* ===================== NOTE ESERCIZIO (v21) =====================
+   Due note diverse, in due posti diversi:
+   1) Nota FISSA dell'esercizio -> DB.exNote[k] = {txt, links:[{u,t}]}
+      Consigli di esecuzione e video YouTube. Vive FUORI dalla scheda:
+      la migrazione della scheda sostituisce l'intera DB.exdb e le
+      cancellerebbe. Nessuna migrazione tocca DB.exNote.
+   2) Nota della SEDUTA -> wl.exNota[k] = {txt, tec}
+      Legata a quel giorno: spiega un carico cambiato. tec = true e' il
+      tasto rapido "Carico abbassato per l'esecuzione", filtrabile nelle
+      analisi. Si rivede nella seduta dopo, sotto "Ultima volta", e nello
+      storico dell'esercizio in Progressi.
+   Entrambe usano la chiave dell'esercizio FATTO (e.k): se lo sostituisci,
+   la nota segue l'esercizio vero, come i numeri.
+   Lo stato "aperto/chiuso" dei riquadri non e' un dato: sta in memoria.
+================================================================= */
+function notaUI(){
+  if(!window.__notaUI) window.__notaUI = {fissaAperta:{}, oggiAperta:{}};
+  return window.__notaUI;
+}
+function escH(v){
+  return String(v==null?"":v).replace(/&/g,"&amp;").replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function notaFissa(k){
+  const n = DB.exNote && DB.exNote[k];
+  return {
+    txt: (n && typeof n.txt === "string") ? n.txt : "",
+    links: (n && Array.isArray(n.links)) ? n.links.filter(l => l && l.u) : []
+  };
+}
+function salvaNotaFissa(k, n){
+  if(!DB.exNote || typeof DB.exNote !== "object") DB.exNote = {};
+  if(!n.txt.trim() && !n.links.length) delete DB.exNote[k];
+  else DB.exNote[k] = {txt:n.txt, links:n.links};
+  saveDB();
+}
+function setNotaFissaTxt(k, val){
+  const n = notaFissa(k);
+  n.txt = String(val||"");
+  salvaNotaFissa(k, n);
+}
+function normalizzaLink(u){
+  u = String(u||"").trim();
+  if(!u) return "";
+  if(!/^https?:\/\//i.test(u)) u = "https://" + u;
+  try{
+    const x = new URL(u);
+    if(x.protocol !== "http:" && x.protocol !== "https:") return "";
+    if(!x.hostname || x.hostname.indexOf(".") < 0) return "";
+    return x.href;
+  }catch(e){ return ""; }
+}
+function etichettaVideo(l, i){
+  if(l.t && l.t.trim()) return l.t.trim();
+  let yt = false;
+  try{ yt = /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(new URL(l.u).hostname); }catch(e){}
+  return (yt ? "Video YouTube " : "Video ") + (i+1);
+}
+function aggiungiVideo(k){
+  const uEl = document.getElementById("vidU_"+k);
+  const tEl = document.getElementById("vidT_"+k);
+  const u = normalizzaLink(uEl ? uEl.value : "");
+  if(!u){ toast("Link non valido: incolla l'indirizzo del video"); return; }
+  const n = notaFissa(k);
+  // Salva anche il testo scritto e non ancora confermato, altrimenti il render lo perde.
+  const tx = document.getElementById("notaF_"+k);
+  if(tx) n.txt = tx.value;
+  n.links = n.links.concat([{u, t: tEl ? tEl.value.trim() : ""}]);
+  salvaNotaFissa(k, n);
+  notaUI().fissaAperta[k] = true;
+  toast("Video aggiunto");
+  render();
+}
+function togliVideo(k, i){
+  const n = notaFissa(k);
+  if(!n.links[i]) return;
+  if(!confirm('Togliere "' + etichettaVideo(n.links[i], i) + '" dalle note?')) return;
+  const tx = document.getElementById("notaF_"+k);
+  if(tx) n.txt = tx.value;
+  n.links = n.links.filter((_, j) => j !== i);
+  salvaNotaFissa(k, n);
+  notaUI().fissaAperta[k] = true;
+  render();
+}
+function notaSeduta(wl, k){
+  const n = wl && wl.exNota && wl.exNota[k];
+  return { txt: (n && typeof n.txt === "string") ? n.txt : "", tec: !!(n && n.tec) };
+}
+function salvaNotaSeduta(k, n){
+  const wl = ensureWL();
+  if(!wl.exNota || typeof wl.exNota !== "object") wl.exNota = {};
+  if(!n.txt.trim() && !n.tec) delete wl.exNota[k];
+  else wl.exNota[k] = {txt:n.txt, tec:n.tec};
+  saveDB();
+}
+function setNotaOggiTxt(k, val){
+  const n = notaSeduta(DB.workoutLog[selDate], k);
+  n.txt = String(val||"");
+  salvaNotaSeduta(k, n);
+}
+function toggleTecnica(k){
+  const n = notaSeduta(DB.workoutLog[selDate], k);
+  const tx = document.getElementById("notaO_"+k);
+  if(tx) n.txt = tx.value;
+  n.tec = !n.tec;
+  salvaNotaSeduta(k, n);
+  notaUI().oggiAperta[k] = true;
+  render();
+}
+function apriNotaOggi(k){
+  notaUI().oggiAperta[k] = true;
+  render();
+  setTimeout(() => { const el = document.getElementById("notaO_"+k); if(el) el.focus(); }, 30);
+}
+function notaSedutaPiena(n){ return !!(n && (n.tec || (n.txt||"").trim())); }
+// Una riga leggibile, per "Ultima volta" e per lo storico in Progressi.
+function testoNotaSeduta(n){
+  const parts = [];
+  if(n.tec) parts.push("<b>Carico abbassato per l'esecuzione</b>");
+  if((n.txt||"").trim()) parts.push(escH(n.txt.trim()));
+  return parts.join(" \u2014 ");
+}
+
 function renderExerciseList(giorno, wl){
   const el = document.getElementById("exerciseList");
   const info = DB.exdb[giorno];
@@ -2113,6 +2284,44 @@ function renderExerciseList(giorno, wl){
           ${rom.err ? `<div class="err">Errore tipico: ${rom.err}</div>` : ""}
         </div>
       </details>` : "";
+    // v21 - nota fissa (consigli + video)
+    const nf = notaFissa(e.k);
+    const nfPiena = !!(nf.txt.trim() || nf.links.length);
+    const nfSummary = nfPiena
+      ? "Le mie note" + (nf.txt.trim() ? " \u270E" : "") + (nf.links.length ? " \u00b7 \u25B6 " + nf.links.length : "")
+      : "+ Note e video";
+    const nfLinks = nf.links.length
+      ? nf.links.map((l, i) => `<div class="vidrow">
+          <a class="vid" href="${escH(l.u)}" target="_blank" rel="noopener">\u25B6 ${escH(etichettaVideo(l, i))}</a>
+          <button class="btn small ghost" onclick="togliVideo('${e.k}',${i})" title="Togli video">\u00d7</button>
+        </div>`).join("")
+      : `<div class="vidvuoto">Nessun video salvato</div>`;
+    const notaFissaHtml = `<details class="rom mynote${nfPiena ? " piena" : ""}" ${notaUI().fissaAperta[e.k] ? "open" : ""} ontoggle="notaUI().fissaAperta['${e.k}']=this.open">
+        <summary>${nfSummary}</summary>
+        <div class="rombody">
+          <div class="notelbl">Come eseguirlo</div>
+          <textarea id="notaF_${e.k}" rows="3" placeholder="Consigli ricevuti, punti da ricordare..." onchange="setNotaFissaTxt('${e.k}', this.value)">${escH(nf.txt)}</textarea>
+          <div class="notelbl">Video</div>
+          ${nfLinks}
+          <div class="vidadd">
+            <input class="u" id="vidU_${e.k}" type="url" inputmode="url" placeholder="Incolla il link">
+            <input class="t" id="vidT_${e.k}" type="text" placeholder="Titolo (facolt.)">
+          </div>
+          <button class="btn small" style="margin-top:6px;" onclick="aggiungiVideo('${e.k}')">+ Aggiungi video</button>
+        </div>
+      </details>`;
+    // v21 - nota della seduta di oggi
+    const ns = notaSeduta(wl, e.k);
+    const nsPiena = notaSedutaPiena(ns);
+    const notaOggiHtml = (nsPiena || notaUI().oggiAperta[e.k]) ? `<div class="notaoggi">
+        <div class="notelbl">Nota di oggi</div>
+        <button class="chiptec${ns.tec ? " on" : ""}" onclick="toggleTecnica('${e.k}')">${ns.tec ? "\u2713 " : ""}Carico abbassato per l'esecuzione</button>
+        <textarea id="notaO_${e.k}" rows="2" placeholder="Perch\u00e9 hai cambiato carico, consigli, sensazioni..." onchange="setNotaOggiTxt('${e.k}', this.value)">${escH(ns.txt)}</textarea>
+      </div>` : "";
+    const notaOggiBtn = (nsPiena || notaUI().oggiAperta[e.k]) ? "" : `<button class="btn small ghost" onclick="apriNotaOggi('${e.k}')">\u270E Nota di oggi</button>`;
+    // v21 - nota lasciata nella seduta precedente
+    const pn = prev && prev.nota ? notaSeduta({exNota:{x:prev.nota}}, "x") : null;
+    const prevNotaHtml = notaSedutaPiena(pn) ? `<div class="prevnota">${testoNotaSeduta(pn)}</div>` : "";
     const sugg = suggerimentoCarico(e, prev);
     const suggHtml = sugg ? `<div class="sugg ${sugg.t}">${sugg.t==="su"?"\u2191":sugg.t==="giu"?"\u2193":sugg.t==="forse"?"?":"\u2192"} ${sugg.txt}</div>` : "";
     const prevText = prev
@@ -2133,10 +2342,13 @@ function renderExerciseList(giorno, wl){
       </div>
       <div class="target">Target: ${e.sets} serie \u00d7 ${repLabel} ripetizioni${rirLabel} \u00b7 Recupero ${recLabel(recSec)}</div>
       ${romHtml}
+      ${notaFissaHtml}
       <div class="prev">${prevText}</div>
+      ${prevNotaHtml}
       ${suggHtml}
       <div class="setrows">${nWarm ? warmRows+'<div class="warmsep">serie allenanti</div>' : ""}${setRows}</div>
-      <div class="alt">${piede}</div>
+      ${notaOggiHtml}
+      <div class="alt">${piede}${notaOggiBtn}</div>
       ${pannello}
     </div>`;
   }).join("");
@@ -2265,17 +2477,21 @@ function allExerciseDefs(){
   return out;
 }
 function renderExerciseHistoryHtml(exKey){
-  const dates = Object.keys(DB.workoutLog).filter(d=>{
+  const conPesi = d => {
     const w = DB.workoutLog[d];
     return w && w.pesi && Array.isArray(w.pesi[exKey]) && w.pesi[exKey].some(v=>v!=="" && v!==null && v!==undefined);
-  }).sort();
-  if(dates.length===0) return `<div class="empty">Nessun dato registrato per questo esercizio</div>`;
+  };
+  // v21 - anche le sedute con la sola nota entrano nella tabella (non nel grafico)
+  const conNota = d => notaSedutaPiena(DB.workoutLog[d] && DB.workoutLog[d].exNota && DB.workoutLog[d].exNota[exKey]);
+  const dates = Object.keys(DB.workoutLog).filter(conPesi).sort();
+  const datesTab = Object.keys(DB.workoutLog).filter(d => conPesi(d) || conNota(d)).sort();
+  if(datesTab.length===0) return `<div class="empty">Nessun dato registrato per questo esercizio</div>`;
   const topSetSeries = dates.map(d=>{
     const nums = (DB.workoutLog[d].pesi[exKey]||[]).filter(v=>v!=="" && v!==null && v!==undefined && !isNaN(v)).map(Number);
     return {x:d, y: nums.length ? Math.max(...nums) : 0};
   });
-  const rows = dates.slice().reverse().map(d=>{
-    const kg = DB.workoutLog[d].pesi[exKey]||[];
+  const rows = datesTab.slice().reverse().map(d=>{
+    const kg = (DB.workoutLog[d].pesi && DB.workoutLog[d].pesi[exKey]) || [];
     const reps = (DB.workoutLog[d].repsLog && DB.workoutLog[d].repsLog[exKey]) || [];
     const rirs = (DB.workoutLog[d].rirLog && DB.workoutLog[d].rirLog[exKey]) || [];
     const setsTxt = kg.map((v,i)=>{
@@ -2286,10 +2502,12 @@ function renderExerciseHistoryHtml(exKey){
       const rirTxt = (rr!==undefined && rr!==null && rr!=="") ? ` @${rr}` : "";
       return `${kgTxt}kg${repTxt}${rirTxt}`;
     }).join(", ");
-    return `<tr><td>${niceDate(d)}</td><td>${setsTxt}</td></tr>`;
+    const nt = DB.workoutLog[d].exNota && DB.workoutLog[d].exNota[exKey];
+    const ntHtml = notaSedutaPiena(nt) ? `<div class="histnota">${testoNotaSeduta(notaSeduta(DB.workoutLog[d], exKey))}</div>` : "";
+    return `<tr><td>${niceDate(d)}</td><td>${setsTxt || "\u2014"}${ntHtml}</td></tr>`;
   }).join("");
   return `
-    ${lineChart(topSetSeries, "#16A34A")}
+    ${topSetSeries.length ? lineChart(topSetSeries, "#16A34A") : ""}
     <table class="progtable">
       <thead><tr><th>Data</th><th>Serie (kg×rip)</th></tr></thead>
       <tbody>${rows}</tbody>
