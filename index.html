@@ -176,8 +176,14 @@
   .vidrow .btn{flex:0 0 auto;}
   .vidadd{display:flex;gap:6px;margin-top:6px;}
   .vidadd input{font-size:12.5px;padding:8px;min-width:0;}
-  .vidadd input.u{flex:3;} .vidadd input.t{flex:2;}
+  .vidadd input.u{flex:1;}
+  .vidadd .btn{flex:0 0 auto;}
   .vidvuoto{font-size:11.5px;color:var(--muted);}
+  .facolt{text-transform:none;letter-spacing:0;font-weight:600;opacity:.75;margin-left:4px;}
+  .notesep{border-top:1px dashed var(--border);margin:12px 0 2px;}
+  .chiptec .box{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;
+    border:1.5px solid currentColor;border-radius:4px;margin-right:7px;font-size:11px;vertical-align:-2px;}
+  .chiptec{display:flex !important;align-items:center;width:100%;}
   .notaoggi{margin-top:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px;}
   .chiptec{display:inline-block;font-size:11.5px;font-weight:700;border-radius:8px;padding:6px 9px;margin-bottom:7px;
     border:1px dashed var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;}
@@ -2142,15 +2148,16 @@ function etichettaVideo(l, i){
 }
 function aggiungiVideo(k){
   const uEl = document.getElementById("vidU_"+k);
-  const tEl = document.getElementById("vidT_"+k);
   const u = normalizzaLink(uEl ? uEl.value : "");
   if(!u){ toast("Link non valido: incolla l'indirizzo del video"); return; }
   const n = notaFissa(k);
   // Salva anche il testo scritto e non ancora confermato, altrimenti il render lo perde.
   const tx = document.getElementById("notaF_"+k);
   if(tx) n.txt = tx.value;
-  n.links = n.links.concat([{u, t: tEl ? tEl.value.trim() : ""}]);
+  n.links = n.links.concat([{u, t: ""}]);
   salvaNotaFissa(k, n);
+  const txO = document.getElementById("notaO_"+k);
+  if(txO && txO.value !== notaSeduta(DB.workoutLog[selDate], k).txt) setNotaOggiTxt(k, txO.value);
   notaUI().fissaAperta[k] = true;
   toast("Video aggiunto");
   render();
@@ -2188,7 +2195,7 @@ function toggleTecnica(k){
   if(tx) n.txt = tx.value;
   n.tec = !n.tec;
   salvaNotaSeduta(k, n);
-  notaUI().oggiAperta[k] = true;
+  notaUI().fissaAperta[k] = true;
   render();
 }
 function apriNotaOggi(k){
@@ -2284,41 +2291,45 @@ function renderExerciseList(giorno, wl){
           ${rom.err ? `<div class="err">Errore tipico: ${rom.err}</div>` : ""}
         </div>
       </details>` : "";
-    // v21 - nota fissa (consigli + video)
+    // v22 - UNA sola sezione "Note" sotto "Esecuzione e ROM". Dentro:
+    //   - come eseguirlo (resta sempre)       -> DB.exNote[k].txt
+    //   - video, facoltativi (restano sempre) -> DB.exNote[k].links
+    //   - questa seduta: spunta "carico abbassato per l'esecuzione"
+    //     e riga libera facoltativa           -> wl.exNota[k] = {tec, txt}
+    // I dati restano separati (la spunta e' della seduta, il consiglio no):
+    // cambia solo dove li scrivi.
     const nf = notaFissa(e.k);
+    const ns = notaSeduta(wl, e.k);
+    const nsPiena = notaSedutaPiena(ns);
     const nfPiena = !!(nf.txt.trim() || nf.links.length);
-    const nfSummary = nfPiena
-      ? "Le mie note" + (nf.txt.trim() ? " \u270E" : "") + (nf.links.length ? " \u00b7 \u25B6 " + nf.links.length : "")
-      : "+ Note e video";
-    const nfLinks = nf.links.length
-      ? nf.links.map((l, i) => `<div class="vidrow">
-          <a class="vid" href="${escH(l.u)}" target="_blank" rel="noopener">\u25B6 ${escH(etichettaVideo(l, i))}</a>
-          <button class="btn small ghost" onclick="togliVideo('${e.k}',${i})" title="Togli video">\u00d7</button>
-        </div>`).join("")
-      : `<div class="vidvuoto">Nessun video salvato</div>`;
-    const notaFissaHtml = `<details class="rom mynote${nfPiena ? " piena" : ""}" ${notaUI().fissaAperta[e.k] ? "open" : ""} ontoggle="notaUI().fissaAperta['${e.k}']=this.open">
+    const notePiena = nfPiena || nsPiena;
+    const nsParti = [];
+    if(nf.txt.trim()) nsParti.push("✎");
+    if(nf.links.length) nsParti.push("▶ " + nf.links.length);
+    if(ns.tec) nsParti.push("↓ carico oggi");
+    else if(ns.txt.trim()) nsParti.push("oggi ✎");
+    const nfSummary = notePiena ? "Note " + nsParti.join(" · ") : "+ Note";
+    const nfLinks = nf.links.map((l, i) => `<div class="vidrow">
+          <a class="vid" href="${escH(l.u)}" target="_blank" rel="noopener">▶ ${escH(etichettaVideo(l, i))}</a>
+          <button class="btn small ghost" onclick="togliVideo('${e.k}',${i})" title="Togli video">×</button>
+        </div>`).join("");
+    const notaFissaHtml = `<details class="rom mynote${notePiena ? " piena" : ""}" ${notaUI().fissaAperta[e.k] ? "open" : ""} ontoggle="notaUI().fissaAperta['${e.k}']=this.open">
         <summary>${nfSummary}</summary>
         <div class="rombody">
           <div class="notelbl">Come eseguirlo</div>
           <textarea id="notaF_${e.k}" rows="3" placeholder="Consigli ricevuti, punti da ricordare..." onchange="setNotaFissaTxt('${e.k}', this.value)">${escH(nf.txt)}</textarea>
-          <div class="notelbl">Video</div>
+          <div class="notelbl">Video <span class="facolt">facoltativo</span></div>
           ${nfLinks}
           <div class="vidadd">
             <input class="u" id="vidU_${e.k}" type="url" inputmode="url" placeholder="Incolla il link">
-            <input class="t" id="vidT_${e.k}" type="text" placeholder="Titolo (facolt.)">
+            <button class="btn small" onclick="aggiungiVideo('${e.k}')">+ Aggiungi</button>
           </div>
-          <button class="btn small" style="margin-top:6px;" onclick="aggiungiVideo('${e.k}')">+ Aggiungi video</button>
+          <div class="notesep"></div>
+          <div class="notelbl">Questa seduta &middot; ${niceDate(selDate)}</div>
+          <button class="chiptec${ns.tec ? " on" : ""}" onclick="toggleTecnica('${e.k}')"><span class="box">${ns.tec ? "✓" : ""}</span>Carico abbassato per l'esecuzione</button>
+          <textarea id="notaO_${e.k}" rows="1" placeholder="Altro da segnare su oggi (facoltativo)" onchange="setNotaOggiTxt('${e.k}', this.value)">${escH(ns.txt)}</textarea>
         </div>
       </details>`;
-    // v21 - nota della seduta di oggi
-    const ns = notaSeduta(wl, e.k);
-    const nsPiena = notaSedutaPiena(ns);
-    const notaOggiHtml = (nsPiena || notaUI().oggiAperta[e.k]) ? `<div class="notaoggi">
-        <div class="notelbl">Nota di oggi</div>
-        <button class="chiptec${ns.tec ? " on" : ""}" onclick="toggleTecnica('${e.k}')">${ns.tec ? "\u2713 " : ""}Carico abbassato per l'esecuzione</button>
-        <textarea id="notaO_${e.k}" rows="2" placeholder="Perch\u00e9 hai cambiato carico, consigli, sensazioni..." onchange="setNotaOggiTxt('${e.k}', this.value)">${escH(ns.txt)}</textarea>
-      </div>` : "";
-    const notaOggiBtn = (nsPiena || notaUI().oggiAperta[e.k]) ? "" : `<button class="btn small ghost" onclick="apriNotaOggi('${e.k}')">\u270E Nota di oggi</button>`;
     // v21 - nota lasciata nella seduta precedente
     const pn = prev && prev.nota ? notaSeduta({exNota:{x:prev.nota}}, "x") : null;
     const prevNotaHtml = notaSedutaPiena(pn) ? `<div class="prevnota">${testoNotaSeduta(pn)}</div>` : "";
@@ -2347,8 +2358,7 @@ function renderExerciseList(giorno, wl){
       ${prevNotaHtml}
       ${suggHtml}
       <div class="setrows">${nWarm ? warmRows+'<div class="warmsep">serie allenanti</div>' : ""}${setRows}</div>
-      ${notaOggiHtml}
-      <div class="alt">${piede}${notaOggiBtn}</div>
+      <div class="alt">${piede}</div>
       ${pannello}
     </div>`;
   }).join("");
