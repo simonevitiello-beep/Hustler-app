@@ -492,7 +492,6 @@ const DEFAULT_EXDB = {
     {k:"panca-inclinata-30", l:"Panca inclinata manubri 30\u00b0", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120, step:2},
     {k:"alzate-laterali-cavi", l:"Alzate laterali ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2.3},
     {k:"tricep-pushdown", l:"Push-down tricipiti", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90, step:5},
-    {k:"french-press", l:"French press con bilanciere EZ", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90, step:2.5},
   ]},
   2: {label:"Giorno 2 \u2014 Schiena + Bicipiti", ex:[
     {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180, step:5},
@@ -933,7 +932,7 @@ function migrateFissoOrfani(){
 function migrateExdbV3(){
   // Dichiarata qui dentro e non fuori: la funzione viene chiamata all'avvio, prima del punto
   // in cui una costante di primo livello sarebbe gia' inizializzata.
-  const EXDB_VERSION = 9;
+  const EXDB_VERSION = 10;
   if(Number(DB.exdbVersion||0) >= EXDB_VERSION) return;
   /* v23 - Migrazione per chiave, non piu' sostituzione in blocco.
      Prima ogni aggiornamento della scheda cancellava tutto cio' che era stato fatto
