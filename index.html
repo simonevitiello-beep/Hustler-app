@@ -430,6 +430,18 @@ const ROM_INFO = {
 "tempo": "2 secondi in discesa.",
 "err": "Inarcare la schiena per aiutarsi. Costole giù, addome attivo."
 },
+"alzate-laterali-cavi": {
+"all": "Cavo basso dietro la schiena, braccio disteso davanti alla coscia opposta: la tensione c'e' gia' qui, ed e' il motivo per cui si fa ai cavi.",
+"acc": "Gomito all'altezza della spalla, non piu' su. Pollice leggermente in basso.",
+"tempo": "Salita in un secondo, discesa in due, senza far tornare la piastra in appoggio.",
+"err": "Stare troppo lontano dalla colonna: il cavo tira all'indietro e il lavoro passa al deltoide posteriore."
+},
+"french-press": {
+"all": "Sdraiato, bilanciere EZ sopra la fronte, gomiti puntati al soffitto e fermi.",
+"acc": "Braccia distese, senza portare i gomiti indietro per riposare.",
+"tempo": "2 secondi in discesa, fermarsi appena sopra la fronte.",
+"err": "Aprire i gomiti verso l'esterno: diventa una spinta e il tricipite si scarica."
+},
 "alzate-laterali": {
 "all": "Braccia lungo i fianchi, ferme, nessuno slancio.",
 "acc": "Gomiti all'altezza delle spalle, non più su.",
@@ -478,8 +490,9 @@ const DEFAULT_EXDB = {
   1: {label:"Giorno 1 \u2014 Petto + Tricipiti", ex:[
     {k:"panca-piana", l:"Panca piana Manubri", sets:4, repMin:6, repMax:8, rir:[2,2,1,1], warm:2, rec:180, step:2},
     {k:"panca-inclinata-30", l:"Panca inclinata manubri 30\u00b0", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120, step:2},
-    {k:"chest-fly", l:"Chest fly ai cavi seduto", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:1, rec:90, step:5},
+    {k:"alzate-laterali-cavi", l:"Alzate laterali ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2.3},
     {k:"tricep-pushdown", l:"Push-down tricipiti", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90, step:5},
+    {k:"french-press", l:"French press con bilanciere EZ", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90, step:2.5},
   ]},
   2: {label:"Giorno 2 \u2014 Schiena + Bicipiti", ex:[
     {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180, step:5},
@@ -496,7 +509,7 @@ const DEFAULT_EXDB = {
   ]},
   4: {label:"Giorno 4 \u2014 Petto B + Schiena B + Spalle", ex:[
     {k:"panca-inclinata-bil", l:"Supine Press", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:2, rec:180, step:5},
-    {k:"croci-cavi", l:"Croci ai cavi seduto", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90, step:5},
+    {k:"croci-cavi", l:"Croci ai cavi seduto", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:5},
     {k:"lat-stretta", l:"Lat machine presa a V", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120, step:5},
     {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90, step:5},
     {k:"shoulder-press", l:"Shoulder press manubri", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120, step:2},
@@ -920,7 +933,7 @@ function migrateFissoOrfani(){
 function migrateExdbV3(){
   // Dichiarata qui dentro e non fuori: la funzione viene chiamata all'avvio, prima del punto
   // in cui una costante di primo livello sarebbe gia' inizializzata.
-  const EXDB_VERSION = 8;
+  const EXDB_VERSION = 9;
   if(Number(DB.exdbVersion||0) >= EXDB_VERSION) return;
   /* v23 - Migrazione per chiave, non piu' sostituzione in blocco.
      Prima ogni aggiornamento della scheda cancellava tutto cio' che era stato fatto
@@ -1874,6 +1887,7 @@ const MUSCOLO = {
   "calf-raise":"polpacci", "calf-raise-seduto":"polpacci",
   "hip-thrust":"glutei", "leg-curl":"femorali",
   "shoulder-press":"spalle", "alzate-laterali":"deltoide laterale",
+  "alzate-laterali-cavi":"deltoide laterale", "french-press":"tricipiti",
 };
 function muscoloDi(k){ return MUSCOLO[k] || "altro"; }
 function exByKey(k){
