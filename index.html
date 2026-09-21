@@ -683,6 +683,7 @@ function defaultDB(){
     exdb: JSON.parse(JSON.stringify(DEFAULT_EXDB)),
     exNote: {}, // v21 - note fisse per esercizio {k:{txt, links:[{u,t}]}}. FUORI da exdb: la migrazione della scheda non le tocca.
     exdbVersion: 0, // 0 = scheda da migrare. La migrazione lo porta a 3 dopo aver sostituito exdb.
+    pianoVersion: 0, // 0 = piano fisso e target da migrare. Stesso schema di exdbVersion: default 0, confronto "minore di".
   };
 }
 
@@ -692,6 +693,7 @@ rinominaAlimenti();
 reconcileFoodLibrary();
 reconcilePianoFisso();
 migrateFissoOrfani();
+migraPiano2200();
 migrateExdbV3();
 reconcileExdbRir();
 reconcileExdbShape();
@@ -929,6 +931,47 @@ function migrateFissoOrfani(){
 // dirsi conclusa, quindi appena l'app si apriva quel numero finiva salvato in memoria e
 // da li' in poi la migrazione si saltava da sola, per sempre. Con "minore di" e un default
 // a 0 il numero salvato puo' solo far partire la migrazione, mai bloccarla per sbaglio.
+/* Revisione del 21 settembre 2026 — taglio a 2.200 kcal.
+   Due settimane di dati (9-21/9) hanno mostrato peso fermo a 2.603 kcal/giorno reali:
+   il TDEE e' ~2.500, non 2.950, quindi il target di 2.350 dava un deficit di 150 kcal.
+   Questa migrazione porta il target a 2.200 e alleggerisce il piano fisso di 288 kcal.
+   Lo storico NON si tocca: ogni giorno registrato ha i suoi valori congelati in
+   pianoFissoSnap, quindi cambiare il piano oggi non riscrive i totali di ieri. */
+function migraPiano2200(){
+  // Dichiarata qui dentro, non fuori: la funzione gira all'avvio, prima che una
+  // costante di primo livello sia inizializzata (errore gia' fatto con EXDB_VERSION).
+  const PIANO_VERSION = 2;
+  if(Number(DB.pianoVersion||0) >= PIANO_VERSION) return;
+
+  // Target: si tocca solo se e' ancora quello vecchio, per non sovrascrivere
+  // un valore che nel frattempo sia stato cambiato a mano.
+  if(DB.targets && Number(DB.targets.kcal) === 2350) DB.targets.kcal = 2200;
+
+  const trova = (slot, id, testo) => {
+    const lista = (DB.pianoFisso && DB.pianoFisso[slot]) || [];
+    return lista.find(it => it && (it.id === id || (testo && String(it.l||"").toLowerCase().indexOf(testo) >= 0))) || null;
+  };
+
+  // Pane di segale: mezza porzione. Si cambia la quantita' standard, non i valori:
+  // cosi' l'alimento resta quello e il campo del giorno parte gia' a 0,5.
+  const pane = trova("spuntino-pm", "pane-segale", "pane di segale");
+  if(pane && Number(pane.defaultQty) === 1) pane.defaultQty = 0.5;
+
+  // Avena serale: da 100 g + 200 ml a 60 g + 120 ml (il 60% dei valori di prima).
+  const avena = trova("spuntino-sera", "avena-sera", "avena");
+  if(avena && Number(avena.kcalU) > 400){
+    avena.l = "Avena overnight (60g + 120ml latte)";
+    avena.kcalU = 281;
+    avena.proU  = 12.1;
+    avena.carbU = 41.3;
+    avena.fatU  = 6.1;
+    if(avena.costoU) avena.costoU = Math.round(avena.costoU * 60) / 100;
+    avena.customized = true;
+  }
+
+  DB.pianoVersion = PIANO_VERSION;
+  saveDB();
+}
 function migrateExdbV3(){
   // Dichiarata qui dentro e non fuori: la funzione viene chiamata all'avvio, prima del punto
   // in cui una costante di primo livello sarebbe gia' inizializzata.
