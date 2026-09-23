@@ -443,8 +443,8 @@ const ROM_INFO = {
 "err": "Aprire i gomiti verso l'esterno: diventa una spinta e il tricipite si scarica."
 },
 "alzate-laterali": {
-"all": "Braccia lungo i fianchi, ferme, nessuno slancio.",
-"acc": "Gomiti all'altezza delle spalle, non più su.",
+"all": "Braccia lungo i fianchi, ferme, nessuno slancio. Busto eretto: piegarsi in avanti sposta il lavoro sul deltoide posteriore, che lavora già il giorno dopo nel G5.",
+"acc": "Gomiti all'altezza delle spalle, non più su. Braccia sul piano frontale, mai portate indietro.",
 "tempo": "Salita in un secondo, discesa in due.",
 "err": "Slanciare con le gambe e col busto. Se serve slancio, il peso è troppo."
 },
@@ -490,35 +490,31 @@ const DEFAULT_EXDB = {
   1: {label:"Giorno 1 \u2014 Petto + Tricipiti", ex:[
     {k:"panca-piana", l:"Panca piana Manubri", sets:4, repMin:6, repMax:8, rir:[2,2,1,1], warm:2, rec:180, step:2},
     {k:"panca-inclinata-30", l:"Panca inclinata manubri 30\u00b0", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120, step:2},
-    {k:"alzate-laterali-cavi", l:"Alzate laterali ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2.3},
+    {k:"alzate-laterali-cavi", l:"Alzate laterali ai cavi (per lato)", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2.3},
     {k:"tricep-pushdown", l:"Push-down tricipiti", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90, step:5},
   ]},
-  2: {label:"Giorno 2 \u2014 Schiena + Bicipiti", ex:[
+  2: {label:"Giorno 2 \u2014 Schiena", ex:[
     {k:"lat-machine", l:"Lat machine presa larga", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180, step:5},
-    {k:"rematore-bil", l:"Rematore manubri", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:1, rec:120, step:2},
-    {k:"cable-row", l:"Cable row presa larga", sets:2, repMin:10, repMax:12, rir:[1,1], warm:1, rec:90, step:5},
+    {k:"rematore-bil", l:"Rematore manubri (per lato)", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:1, rec:120, step:2},
     {k:"face-pull", l:"Face pull", sets:3, repMin:15, repMax:15, rir:[2,1,0], warm:1, rec:90, step:5},
-    {k:"curl-ez", l:"Curl EZ", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90, step:2.5},
   ]},
-  3: {label:"Giorno 3 \u2014 Gambe A (Quadricipiti)", ex:[
+  3: {label:"Giorno 3 \u2014 Gambe complete", ex:[
     {k:"squat", l:"Squat con bilanciere", sets:4, repMin:8, repMax:10, rir:[2,2,2,1], warm:2, rec:180, step:2.5},
-    {k:"leg-press", l:"Leg press inclinata", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120, step:5},
+    {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180, step:2.5},
+    {k:"leg-curl", l:"Prone Leg curl", sets:4, repMin:10, repMax:12, rir:[2,2,1,1], warm:1, rec:120, step:5},
     {k:"leg-extension", l:"Leg extension", sets:3, repMin:12, repMax:15, rir:[2,1,0], warm:1, rec:90, step:5},
-    {k:"calf-raise", l:"Calf raise in piedi con bilanciere", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120, step:2.5},
   ]},
-  4: {label:"Giorno 4 \u2014 Petto B + Schiena B + Spalle", ex:[
+  4: {label:"Giorno 4 \u2014 Petto B + Schiena B + Laterali", ex:[
     {k:"panca-inclinata-bil", l:"Supine Press", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:2, rec:180, step:5},
     {k:"croci-cavi", l:"Croci ai cavi seduto", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:5},
     {k:"lat-stretta", l:"Lat machine presa a V", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120, step:5},
     {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90, step:5},
-    {k:"shoulder-press", l:"Shoulder press manubri", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:1, rec:120, step:2},
-    {k:"alzate-laterali", l:"Alzate laterali", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2},
+    {k:"alzate-laterali", l:"Alzate laterali manubri", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2},
   ]},
-  5: {label:"Giorno 5 \u2014 Gambe B + Spalle/Braccia", ex:[
-    {k:"hip-thrust", l:"Hip thrust", sets:4, repMin:8, repMax:10, rir:[2,2,1,1], warm:2, rec:180, step:2.5},
-    {k:"leg-curl", l:"Prone Leg curl", sets:4, repMin:10, repMax:12, rir:[2,2,1,1], warm:1, rec:120, step:5},
-    {k:"calf-raise-seduto", l:"Calf raise leg press (ginocchio 90\u00b0)", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120, step:5},
+  5: {label:"Giorno 5 \u2014 Posteriori + Braccia + Polpacci", ex:[
     {k:"alzate-posteriori", l:"Alzate posteriori manubri", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2},
+    {k:"calf-raise", l:"Calf raise in piedi con bilanciere", sets:3, repMin:15, repMax:20, rir:[1,1,0], warm:1, rec:120, step:2.5},
+    {k:"curl-ez", l:"Curl EZ", sets:3, repMin:10, repMax:12, rir:[2,1,0], warm:1, rec:90, step:2.5},
     {k:"hammer-curl", l:"Hammer curl manubri", sets:3, repMin:10, repMax:12, rir:[1,1,0], warm:1, rec:120, step:2},
     {k:"tricep-overhead", l:"Estensioni tricipiti sopra la testa ai cavi", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:5},
   ]},
@@ -975,7 +971,7 @@ function migraPiano2200(){
 function migrateExdbV3(){
   // Dichiarata qui dentro e non fuori: la funzione viene chiamata all'avvio, prima del punto
   // in cui una costante di primo livello sarebbe gia' inizializzata.
-  const EXDB_VERSION = 10;
+  const EXDB_VERSION = 11;
   if(Number(DB.exdbVersion||0) >= EXDB_VERSION) return;
   /* v23 - Migrazione per chiave, non piu' sostituzione in blocco.
      Prima ogni aggiornamento della scheda cancellava tutto cio' che era stato fatto
