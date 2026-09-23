@@ -2439,6 +2439,55 @@ function testoNotaSeduta(n){
   return parts.join(" \u2014 ");
 }
 
+/* v28 - Esercizi registrati in una giornata che non stanno piu' negli slot di quel giorno.
+   Succede quando la scheda cambia DOPO che la seduta e' gia' stata registrata: il 17/9/2026
+   col chest fly, il 23/9/2026 con l'hip thrust quando il G5 e' diventato un altro giorno.
+   I dati non si sono mai persi (vivono in workoutLog, indicizzati per esercizio) ma
+   sparivano dalla vista del giorno, perche' le righe si costruiscono dagli slot della
+   scheda ATTUALE. Qui tornano in fondo alla giornata, in sola lettura.
+   Lo stesso principio di exerciseDefsFuoriScheda in Progressi, applicato alla singola seduta. */
+function registratiFuoriSlot(wl, ordinati){
+  if(!wl) return [];
+  const mostrate = {};
+  (ordinati||[]).forEach(slot=>{
+    mostrate[slot.k] = true;
+    const eff = exEffettivo(slot, wl);
+    if(eff && eff.e) mostrate[eff.e.k] = true;
+  });
+  const pieno = v => Array.isArray(v) && v.some(x=>x!=="" && x!==null && x!==undefined);
+  const chiavi = Object.keys((wl.pesi)||{}).concat(Object.keys((wl.repsLog)||{}));
+  return chiavi
+    .filter((k,i,arr)=> arr.indexOf(k)===i)
+    .filter(k=> !mostrate[k] && (pieno(wl.pesi && wl.pesi[k]) || pieno(wl.repsLog && wl.repsLog[k])))
+    .sort();
+}
+function bloccoFuoriSlot(wl, ordinati){
+  const extra = registratiFuoriSlot(wl, ordinati);
+  if(!extra.length) return "";
+  const vuoto = x => x==="" || x===null || x===undefined;
+  const righe = extra.map(k=>{
+    const def = exByKey(k);
+    const nome = def ? def.l : etichettaChiave(k);
+    const kg = (wl.pesi && wl.pesi[k]) || [];
+    const rp = (wl.repsLog && wl.repsLog[k]) || [];
+    const ri = (wl.rirLog && wl.rirLog[k]) || [];
+    const serie = [];
+    for(let i=0; i<Math.max(kg.length, rp.length); i++){
+      if(vuoto(kg[i]) && vuoto(rp[i])) continue;
+      serie.push((vuoto(kg[i]) ? "\u2013" : kg[i] + " kg")
+        + " \u00d7 " + (vuoto(rp[i]) ? "\u2013" : rp[i])
+        + (vuoto(ri[i]) ? "" : " \u00b7 RIR " + ri[i]));
+    }
+    return `<div class="exercise">
+      <div class="exhead"><div class="exname">${escH(nome)}</div></div>
+      <div class="target">Registrato in questa giornata, non e' piu' fra i suoi esercizi</div>
+      <div class="prev">${escH(serie.join("   \u00b7   "))}</div>
+    </div>`;
+  }).join("");
+  return `<h3 class="section">Registrati quel giorno</h3>`
+    + `<div class="banner warn" style="margin-bottom:10px;">Questi esercizi li avevi fatti quando la scheda era diversa. I dati sono salvi: restano qui e nello storico in Progressi.</div>`
+    + righe;
+}
 function renderExerciseList(giorno, wl){
   const el = document.getElementById("exerciseList");
   const info = DB.exdb[giorno];
@@ -2586,7 +2635,8 @@ function renderExerciseList(giorno, wl){
       <div class="alt">${piede}</div>
       ${pannello}
     </div>`;
-  }).join("");
+  }).join("")
+    + bloccoFuoriSlot(wl, ordinati);
 }
 function setSetField(exKey, field, setIdx, val){
   const wl = ensureWL();
