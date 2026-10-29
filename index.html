@@ -336,7 +336,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v33";
+const APP_VERSION = "v34";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -707,6 +707,17 @@ const DEFAULT_DISPENSA = [
   {id:"latte",     nome:"Latte senza lattosio", unita:"ml",         perConf:1000, conf:"litro",               consumo:320, orizzonte:30},
   {id:"mandorle",  nome:"Mandorle",             unita:"g",          perConf:300,  conf:"sacchetto da 300 g",  consumo:10,  orizzonte:30}
 ];
+/* Il fresco non ha contatore: dura pochi giorni e decide la scadenza, non la quantita'.
+   Ha pero' un ritmo prevedibile, quindi entra in lista ogni tot giorni dall'ultima spesa. */
+const DEFAULT_FRESCO = [
+  {id:"tacchino",   nome:"Fesa di tacchino",     cadenza:5, qta:"4 confezioni da 150 g"},
+  {id:"fiocchi",    nome:"Fiocchi di latte",     cadenza:5, qta:"2 vaschette da 400 g"},
+  {id:"patate",     nome:"Patate lesse pronte",  cadenza:5, qta:"2 buste da 300 g"},
+  {id:"pomodorini", nome:"Pomodorini",           cadenza:5, qta:"2 vaschette da 500 g"},
+  {id:"insalata",   nome:"Insalata in busta",    cadenza:5, qta:"2 buste"},
+  {id:"kiwi",       nome:"Kiwi gialli",          cadenza:5, qta:"10 kiwi"},
+  {id:"banane",     nome:"Banane",               cadenza:5, qta:"5 banane"}
+];
 // Quanto consuma un piatto della libreria. Chiave = nome in minuscolo.
 const DISTINTA_PASTI = {
   "tonno e ceci":             {tonno:1, ceci:1},
@@ -746,6 +757,7 @@ function defaultDB(){
     fotoLog: [],
     foodLibrary: JSON.parse(JSON.stringify(DEFAULT_FOODLIB)),
     dispensa: JSON.parse(JSON.stringify(DEFAULT_DISPENSA)).map(x=>Object.assign({stock:0}, x)),
+    fresco: JSON.parse(JSON.stringify(DEFAULT_FRESCO)).map(x=>Object.assign({ultimaSpesa:""}, x)),
     barcodeCache: {},
     exdb: JSON.parse(JSON.stringify(DEFAULT_EXDB)),
     exNote: {}, // v21 - note fisse per esercizio {k:{txt, links:[{u,t}]}}. FUORI da exdb: la migrazione della scheda non le tocca.
@@ -764,6 +776,7 @@ migraPiano2200();
 migrateExdbV3();
 reconcileExdbRir();
 migraDispensa();
+migraFresco();
 reconcileExdbShape();
 function loadDB(){
   try{
@@ -1260,6 +1273,26 @@ function migraDispensa(){
   if(cambiato) saveDB();
 }
 function voceDispensa(id){ return (DB.dispensa||[]).find(x=>x.id===id); }
+function migraFresco(){
+  if(!Array.isArray(DB.fresco)) DB.fresco = [];
+  let cambiato = false;
+  DEFAULT_FRESCO.forEach(def=>{
+    const cur = DB.fresco.find(x=>x.id===def.id);
+    if(!cur){ DB.fresco.push(Object.assign({ultimaSpesa:""}, def)); cambiato = true; return; }
+    ["nome","cadenza","qta"].forEach(k=>{ if(cur[k]!==def[k]){ cur[k]=def[k]; cambiato = true; } });
+  });
+  if(cambiato) saveDB();
+}
+// Giorni che mancano alla prossima spesa di una voce fresca. <= 0 vuol dire "tocca adesso".
+function giorniAllaSpesa(f){
+  if(!f.ultimaSpesa) return 0;
+  const g = Math.floor((new Date(todayStr()) - new Date(f.ultimaSpesa)) / 86400000);
+  return (Number(f.cadenza)||5) - g;
+}
+function listaFresco(){
+  return (DB.fresco||[]).filter(f=>giorniAllaSpesa(f) <= 0)
+    .sort((a,b)=>giorniAllaSpesa(a)-giorniAllaSpesa(b));
+}
 function giorniAutonomia(v){
   const c = Number(v.consumo)||0;
   return c>0 ? (Number(v.stock)||0)/c : Infinity;
@@ -1589,7 +1622,7 @@ function renderOggi(app){
   if(totalsYest.kcal>0 && totalsYest.kcal < 1500){
     banners += `<div class="banner bad">Ieri sotto le 1500 kcal (${Math.round(totalsYest.kcal)}). Aspettati meno lucidità ed energia nelle call di oggi — recupera con calma, non saltare i prossimi pasti.</div>`;
   }
-  const spesa = listaSpesa();
+  const spesa = listaSpesa().concat(listaFresco());
   if(spesa.length){
     const nomi = spesa.slice(0,3).map(v=>v.nome.toLowerCase()).join(", ");
     const altro = spesa.length>3 ? ` e altre ${spesa.length-3}` : "";
@@ -2850,13 +2883,16 @@ function setStockDispensa(id, val){
   saveDB(); render();
 }
 function comprato(){
-  const lista = listaSpesa().filter(v=>spesaSpuntate[v.id]);
-  if(!lista.length){ toast("Spunta almeno una voce"); return; }
-  lista.forEach(v=>{
+  const scorte = listaSpesa().filter(v=>spesaSpuntate[v.id]);
+  const freschi = listaFresco().filter(f=>spesaSpuntate[f.id]);
+  if(!scorte.length && !freschi.length){ toast("Spunta almeno una voce"); return; }
+  scorte.forEach(v=>{
     v.stock = (Number(v.stock)||0) + confDaComprare(v) * (Number(v.perConf)||1);
     delete spesaSpuntate[v.id];
   });
-  saveDB(); toast(lista.length===1 ? "1 voce rifornita" : lista.length+" voci rifornite"); render();
+  freschi.forEach(f=>{ f.ultimaSpesa = todayStr(); delete spesaSpuntate[f.id]; });
+  const n = scorte.length + freschi.length;
+  saveDB(); toast(n===1 ? "1 voce rifornita" : n+" voci rifornite"); render();
 }
 function rigaDispensa(v){
   const g = giorniAutonomia(v);
@@ -2879,23 +2915,28 @@ function renderDispensa(app){
   const ok = tutte.filter(v=>giorniAutonomia(v) >= SOGLIA_SPESA);
   let html = "";
 
-  if(lista.length){
-    const spuntate = lista.filter(v=>spesaSpuntate[v.id]);
-    const totale = spuntate.reduce((s,v)=>s + confDaComprare(v) * (Number(v.costoConf)||0), 0);
+  const fresco = listaFresco();
+  const tuttoFresco = (DB.fresco||[]).slice().sort((a,b)=>giorniAllaSpesa(a)-giorniAllaSpesa(b));
+  if(lista.length || fresco.length){
     html += `<div class="card">
       <h2>Lista della spesa</h2>
-      <div style="color:var(--muted);font-size:12px;margin:-4px 0 8px;">Si forma da sola: una voce entra quando scende sotto ${SOGLIA_SPESA} giorni.</div>
+      <div style="color:var(--muted);font-size:12px;margin:-4px 0 8px;">Si forma da sola: le scorte entrano sotto ${SOGLIA_SPESA} giorni di autonomia, il fresco ogni 5 giorni.</div>
       ${lista.map(v=>`<div class="disprow">
         <button class="spesabox${spesaSpuntate[v.id] ? " on" : ""}" onclick="toggleSpesa('${v.id}')" aria-label="Spunta ${v.nome}"></button>
         <div class="nm"><b>${v.nome}</b>
           <span>${confDaComprare(v)} ${confDaComprare(v)===1 ? v.conf : v.conf.replace(/^(confezione|busta|barattolo|scatoletta|vascone|litro|sacchetto)/, m=>({confezione:"confezioni",busta:"buste",barattolo:"barattoli",scatoletta:"scatolette",vascone:"vasconi",litro:"litri",sacchetto:"sacchetti"})[m])} &rarr; ${v.orizzonte} giorni</span></div>
+      </div>`).join("")}
+      ${fresco.map(f=>`<div class="disprow">
+        <button class="spesabox${spesaSpuntate[f.id] ? " on" : ""}" onclick="toggleSpesa('${f.id}')" aria-label="Spunta ${f.nome}"></button>
+        <div class="nm"><b>${f.nome}</b>
+          <span>${f.qta} &rarr; ${f.cadenza} giorni${f.ultimaSpesa ? "" : " &middot; mai comprato"}</span></div>
       </div>`).join("")}
       <button class="btn primary block" style="margin-top:10px;" onclick="comprato()">Ho comprato le voci spuntate</button>
       <div style="color:var(--muted);font-size:11.5px;margin-top:7px;">Spuntando una voce la scorta sale e la riga esce dalla lista.</div>
     </div>`;
   } else {
     html += `<div class="card"><h2>Lista della spesa</h2>
-      <div class="empty">Niente da comprare: tutto sopra ${SOGLIA_SPESA} giorni di autonomia.</div></div>`;
+      <div class="empty">Niente da comprare: scorte sopra ${SOGLIA_SPESA} giorni e fresco ancora in corso.</div></div>`;
   }
 
   if(scarse.length){
@@ -2906,11 +2947,25 @@ function renderDispensa(app){
     html += `<h3 class="section">Ne hai abbastanza</h3>
       <div class="card">${ok.map(rigaDispensa).join("")}</div>`;
   }
+  if(tuttoFresco.length){
+    html += `<h3 class="section">Fresco &mdash; ogni 5 giorni</h3><div class="card">` +
+      tuttoFresco.map(f=>{
+        const g = giorniAllaSpesa(f);
+        const pill = g <= 0 ? "bad" : (g <= 1 ? "warn" : "ok");
+        const txt = g <= 0 ? "ora" : (g === 1 ? "domani" : "fra " + g + " gg");
+        return `<div class="disprow">
+          <div class="nm"><b>${f.nome}</b>
+            <span>${f.qta}${f.ultimaSpesa ? " &middot; ultima spesa " + niceDate(f.ultimaSpesa) : " &middot; mai comprato"}</span></div>
+          <span class="pill ${pill}" style="min-width:58px;text-align:center;">${txt}</span>
+        </div>`;
+      }).join("") + `</div>`;
+  }
   html += `<div class="card"><h2>Come funziona</h2>
     <div style="font-size:12.5px;color:var(--muted);line-height:1.55;">
       Le scorte scendono da sole quando registri un pasto o cambi le quantita' del piano fisso.
       Il numero accanto a ogni voce e' modificabile: aprila dispensa, conta e riscrivi quando la realta' si scosta.<br><br>
-      Tacchino, fiocchi di latte, patate, verdura e frutta non sono qui: durano pochi giorni e decide la scadenza, non la quantita'.
+      Il fresco non ha contatore: dura pochi giorni e decide la scadenza, non la quantita'. Entra in lista
+      a ritmo fisso, ogni cinque giorni dall'ultima spesa, con gia' scritto quanto prendere.
     </div></div>`;
   app.innerHTML = html;
 }
