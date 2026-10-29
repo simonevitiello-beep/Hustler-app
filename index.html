@@ -336,7 +336,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v34";
+const APP_VERSION = "v35";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -1927,8 +1927,16 @@ function renderFoodLibList(){
     return `<div class="foodlib-item">
       <div><div class="nm">${f.name}</div><div class="mc">${f.kcal}kcal · P${f.pro} C${f.carb} G${f.fat} · ${(f.costo||0).toFixed(2)}€</div></div>
       <button onclick="addLibFood(${realIdx})">+ Aggiungi</button>
+      <button class="del" onclick="eliminaLibFood(${realIdx})" aria-label="Togli ${f.name} dalla libreria">\u2715</button>
     </div>`;
   }).join("") || `<div class="empty">Nessun risultato</div>`;
+}
+function eliminaLibFood(idx){
+  const f = DB.foodLibrary[idx];
+  if(!f) return;
+  if(!confirm(`Togliere "${f.name}" dalla libreria?\n\nI pasti gia' registrati restano come sono.`)) return;
+  DB.foodLibrary.splice(idx, 1);
+  saveDB(); toast(`${f.name} tolto dalla libreria`); render();
 }
 function addLibFood(idx){
   const f = DB.foodLibrary[idx];
@@ -1949,11 +1957,26 @@ function addFreeFood(){
   const slot = document.getElementById("slotSelect").value;
   if(!DB.meals[selDate]) DB.meals[selDate]=[];
   DB.meals[selDate].push({id:uid(), name, kcal, pro, carb, fat, costo, slot});
-  if(!DB.foodLibrary.find(f=>f.name.toLowerCase()===name.toLowerCase())){
+  /* v35 - prima, se il nome esisteva gia', la voce in libreria restava con i valori
+     vecchi e non c'era modo di correggerla. Ora i valori nuovi la sostituiscono:
+     sbagli un numero, lo reinserisci giusto, finito. I pasti gia' registrati non
+     cambiano, perche' ognuno porta la propria copia dei valori. */
+  const giaInLibreria = DB.foodLibrary.find(f=>f.name.toLowerCase()===name.toLowerCase());
+  let aggiornata = false;
+  if(giaInLibreria){
+    if(giaInLibreria.kcal!==kcal || giaInLibreria.pro!==pro || giaInLibreria.carb!==carb ||
+       giaInLibreria.fat!==fat || (giaInLibreria.costo||0)!==costo){
+      giaInLibreria.kcal=kcal; giaInLibreria.pro=pro; giaInLibreria.carb=carb;
+      giaInLibreria.fat=fat; giaInLibreria.costo=costo;
+      aggiornata = true;
+    }
+  } else {
     DB.foodLibrary.push({name,kcal,pro,carb,fat,costo});
   }
   scalaPasto(name, -1);
-  saveDB(); toast(`${name} aggiunto`); render();
+  saveDB();
+  toast(aggiornata ? `${name}: valori aggiornati in libreria` : `${name} aggiunto`);
+  render();
 }
 function removeMeal(dateStr, id){
   const tolto = (DB.meals[dateStr]||[]).find(m=>m.id===id);
