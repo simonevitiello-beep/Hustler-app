@@ -12,17 +12,17 @@
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#080807; --card:#111009; --card2:#181610; --border:#2A2517;
-    --text:#E8E4D8; --muted:#8A8275;
-    --gold:#8C7226; --gold-light:#B69847; --gold-dim:#4A3C14;
+    --bg:#0B0B0D; --card:#141416; --card2:#1A1A1D; --border:#24242A;
+    --text:#EDEDEA; --muted:#8A8A92;
+    --gold:#C9AC5F; --gold-light:#E3C778; --gold-dim:#3A3218;
     --red:#A32D2D; --red-light:#E24B4A; --red-dim:#4A1B0C;
     --green:#3B6D11; --green-light:#639922;
     --amber:#BA7517; --amber-light:#EF9F27;
     --blue:#185FA5;
-    --font-display:'Oswald', 'Arial Narrow', sans-serif;
+    --font-display:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
@@ -76,7 +76,7 @@
     border:1px solid var(--border);}
   .btn:active{transform:scale(.97);}
   .btn.primary,.btn.small{font-family:var(--font-display);letter-spacing:0.4px;}
-  .btn.primary{text-transform:uppercase;}
+  .btn.primary{text-transform:none;}
   .btn.primary{background:var(--gold-light);border-color:var(--gold-light);color:#0A0A0A;}
   .btn.ghost{background:transparent;}
   .btn.small{padding:7px 10px;font-size:12.5px;}
@@ -133,7 +133,7 @@
     background:#141412;border:1px solid var(--border);border-radius:14px;padding:10px 12px;
     box-shadow:0 10px 28px rgba(0,0,0,.55);overflow:hidden;}
   .resttimer.show{display:flex;align-items:center;gap:10px;}
-  .resttimer .t{font-family:Oswald,system-ui,sans-serif;font-size:26px;font-weight:700;min-width:72px;}
+  .resttimer .t{font-family:var(--font-display);font-size:26px;font-weight:700;min-width:72px;}
   .resttimer .lbl{font-size:11.5px;color:var(--muted);line-height:1.3;flex:1;}
   .resttimer .bar{position:absolute;left:0;bottom:0;height:3px;background:#D4A437;width:100%;
     transition:width .25s linear;}
@@ -273,17 +273,17 @@
 </head>
 <body>
 <header class="top">
-  <h1><span aria-hidden="true">🏆</span> <span id="headerTitle">Hustler Fitness</span></h1>
+  <h1><span id="headerTitle">Hustler Fitness</span></h1>
   <div class="tagline">Performance · Composizione corporea · Vendita</div>
   <div class="sub" id="headerSub">—</div>
 </header>
 <main id="app"></main>
 <nav class="tabs">
-  <button data-tab="oggi" class="active"><span class="ic">●</span>Oggi</button>
-  <button data-tab="pasti"><span class="ic">🍽</span>Pasti</button>
-  <button data-tab="allenamento"><span class="ic">🏋</span>Palestra</button>
-  <button data-tab="progressi"><span class="ic">📈</span>Progressi</button>
-  <button data-tab="impostazioni"><span class="ic">⚙</span>Impostazioni</button>
+  <button data-tab="oggi" class="active">Oggi</button>
+  <button data-tab="pasti">Pasti</button>
+  <button data-tab="allenamento">Palestra</button>
+  <button data-tab="progressi">Progressi</button>
+  <button data-tab="impostazioni">Impostazioni</button>
 </nav>
 <div class="resttimer" id="restTimer">
   <div class="t">0:00</div>
@@ -906,7 +906,7 @@ function migrateFissoOrfani(){
         if(!(Number(DB.pianoFissoLog[d][slot][id])>0)) return;
         if(resolveFissoItem(d, slot, id)) return;
         DB.pianoFissoArchivio.push({
-          id, slot, l:"⚠ "+id+" — valori da reinserire", unit:"porzione", defaultQty:1,
+          id, slot, l:"Da reinserire — "+id, unit:"porzione", defaultQty:1,
           kcalU:0, proU:0, carbU:0, fatU:0, costoU:0, archiviato:true
         });
         changed = true;
@@ -1447,11 +1447,11 @@ function renderOggi(app){
     banners += `<div class="banner bad" style="border-width:2px;"><b>\u{1F6D1} Oggi \u00e8 riposo.</b> Ieri hai fatto <b>${DB.exdb[wlIeri.giorno].label}</b>, e il giorno dopo le gambe non ci si allena. La prossima seduta \u00e8 da domani.</div>`;
   }
   if(totalsYest.kcal>0 && totalsYest.kcal < 1500){
-    banners += `<div class="banner bad">⚠️ Ieri sotto le 1500 kcal (${Math.round(totalsYest.kcal)}). Aspettati meno lucidità ed energia nelle call di oggi — recupera con calma, non saltare i prossimi pasti.</div>`;
+    banners += `<div class="banner bad">Ieri sotto le 1500 kcal (${Math.round(totalsYest.kcal)}). Aspettati meno lucidità ed energia nelle call di oggi — recupera con calma, non saltare i prossimi pasti.</div>`;
   }
   const nbAvviso = nutribeesAvviso();
   if(nbAvviso.urgente){
-    banners += `<div class="banner bad">⚠️ Scorte Nutribees: ${DB.nutribeesStock||0} pasti rimasti (~${Math.floor(nbAvviso.giorni)} giorni). Con ${DB.nutribeesLeadDays||7} giorni di consegna, ordina ora.</div>`;
+    banners += `<div class="banner bad">Scorte Nutribees: ${DB.nutribeesStock||0} pasti rimasti (~${Math.floor(nbAvviso.giorni)} giorni). Con ${DB.nutribeesLeadDays||7} giorni di consegna, ordina ora.</div>`;
   }
   // Promemoria pesata e foto: due avvisi indipendenti, entrambi partono dal lunedì della settimana
   // corrente e restano finché non fai l'azione specifica — non spariscono da soli col cambio di giorno.
@@ -1459,7 +1459,7 @@ function renderOggi(app){
   const ritardo = t===lunediSettimana ? "" : ` (dovevi farla lunedì ${niceDate(lunediSettimana)})`;
   const pesoFattoSettimana = DB.pesoLog.some(p=>p.date>=lunediSettimana && p.date<=t);
   if(!pesoFattoSettimana){
-    banners += `<div class="banner warn">⚖️ Questa settimana manca ancora la pesata${ritardo}. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
+    banners += `<div class="banner warn">Questa settimana manca ancora la pesata${ritardo}. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
   }
   // La percentuale di grasso serve una volta a settimana: come dato singolo e' rumoroso,
   // e' il trend su piu' settimane che conta. Lo chiedo solo se la pesata c'e' gia',
@@ -1470,12 +1470,12 @@ function renderOggi(app){
   }
   const fotoFattaSettimana = DB.fotoLog.some(f=>f.date>=lunediSettimana && f.date<=t);
   if(!fotoFattaSettimana){
-    banners += `<div class="banner warn">📸 Questa settimana manca ancora la foto progressi${ritardo}. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
+    banners += `<div class="banner warn">Questa settimana manca ancora la foto progressi${ritardo}. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
   }
   if(!doneOggi){
     banners += `<div class="banner warn">Prossima sessione in coda: <b>${DB.exdb[giornoOggi].label}</b>. Appena inserisci un peso o delle ripetizioni viene segnata fatta e si passa al giorno dopo — se non fai nulla, resta in coda finché non la fai.</div>`;
   } else {
-    banners += `<div class="banner ok">Sessione di oggi già segnata: ${DB.exdb[giornoOggi].label} ✅</div>`;
+    banners += `<div class="banner ok">Sessione di oggi già segnata: ${DB.exdb[giornoOggi].label}</div>`;
   }
   // streak: giorni di allenamento consecutivi segnati "fatto", scansione a ritroso.
   // Un giorno senza nessuna voce nel log non rompe lo streak (potresti non esserti allenato
@@ -1604,7 +1604,7 @@ function renderPasti(app){
     </div>
 
     <button class="btn block" style="margin-bottom:12px;" onclick="mostraAltro=!mostraAltro; render();">
-      ${mostraAltro ? "▲ Nascondi altre opzioni" : "▼ Altro (fuori piano / barcode / libero)"}
+      ${mostraAltro ? "Nascondi altre opzioni" : "Altro (fuori piano / barcode / libero)"}
     </button>
 
     ${mostraAltro ? `
@@ -1626,7 +1626,7 @@ function renderPasti(app){
         se l'app gira su https e il browser la supporta (Chrome Android sì, Safari/iPhone no) — su iPhone usa il codice manuale.
       </div>
       <div class="row" style="gap:8px;margin-bottom:4px;">
-        <button class="btn" onclick="openBarcodeScanner()">📷 Scansiona</button>
+        <button class="btn" onclick="openBarcodeScanner()">Scansiona</button>
         <input type="text" id="manualBarcode" placeholder="o codice a barre" inputmode="numeric">
         <button class="btn primary" onclick="lookupBarcode(document.getElementById('manualBarcode').value)">Cerca</button>
       </div>
@@ -1710,7 +1710,7 @@ function renderDateStrip(){
     const active = d===selDate ? "active":"";
     const short = new Date(d+"T12:00:00");
     return `<button class="${active}" onclick="selDate='${d}';render();">${IT_DAYS_SHORT[short.getDay()]} ${short.getDate()}</button>`;
-  }).join("") + `<button onclick="pickCustomDate()">📅</button>`;
+  }).join("") + `<button onclick="pickCustomDate()">Altra data</button>`;
 }
 function pickCustomDate(){
   const v = prompt("Data (AAAA-MM-GG):", selDate);
@@ -1816,7 +1816,7 @@ function bottoniStatoSeduta(wl){
   return `<button class="btn block" style="background:var(--card2);" onclick="markSkipped()">Segna saltato</button>
       ${wl.done
         ? `<button class="btn block" style="border-color:var(--red);color:#F87171;" onclick="markUndone()">Annulla completamento</button>`
-        : `<button class="btn primary block" onclick="markDone()">Segna fatto ✓</button>`}`;
+        : `<button class="btn primary block" onclick="markDone()">Segna fatto</button>`}`;
 }
 // v23 - Dopo un numero inserito si aggiornano solo i pezzi che cambiano davvero
 // (stato della seduta, striscia date, colore del RIR), non tutta la pagina:
@@ -2568,13 +2568,13 @@ function renderExerciseList(giorno, wl){
     const nfPiena = !!(nf.txt.trim() || nf.links.length);
     const notePiena = nfPiena || nsPiena;
     const nsParti = [];
-    if(nf.txt.trim()) nsParti.push("✎");
-    if(nf.links.length) nsParti.push("▶ " + nf.links.length);
-    if(ns.tec) nsParti.push("↓ carico oggi");
-    else if(ns.txt.trim()) nsParti.push("oggi ✎");
+    if(nf.txt.trim()) nsParti.push("nota");
+    if(nf.links.length) nsParti.push(nf.links.length + (nf.links.length===1 ? " video" : " video"));
+    if(ns.tec) nsParti.push("carico abbassato");
+    else if(ns.txt.trim()) nsParti.push("nota di oggi");
     const nfSummary = notePiena ? "Note " + nsParti.join(" · ") : "+ Note";
     const nfLinks = nf.links.map((l, i) => `<div class="vidrow">
-          <a class="vid" href="${escH(l.u)}" target="_blank" rel="noopener">▶ ${escH(etichettaVideo(l, i))}</a>
+          <a class="vid" href="${escH(l.u)}" target="_blank" rel="noopener">${escH(etichettaVideo(l, i))}</a>
           <button class="btn small ghost" onclick="togliVideo('${e.k}',${i})" title="Togli video">×</button>
         </div>`).join("");
     const notaFissaHtml = `<details class="rom mynote${notePiena ? " piena" : ""}" ${notaUI().fissaAperta[e.k] ? "open" : ""} ontoggle="notaUI().fissaAperta['${e.k}']=this.open">
@@ -2749,7 +2749,7 @@ function renderProgressi(app){
       <h2>Foto progressi</h2>
       <div class="row" style="margin-bottom:10px;gap:8px;">
         <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;" onchange="addPhoto(this)">
-        <button class="btn primary block" onclick="document.getElementById('photoInput').click()">📷 Aggiungi foto</button>
+        <button class="btn primary block" onclick="document.getElementById('photoInput').click()">Aggiungi foto</button>
       </div>
       ${renderPhotoGrid()}
     </div>
@@ -3085,10 +3085,10 @@ function renderImpostazioni(app){
     <div class="card settingsgroup">
       <h2>Backup e dati</h2>
       <div id="storageInfo" style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Calcolo lo spazio…</div>
-      <button class="btn block" style="margin-bottom:8px;" onclick="exportData()">⬇️ Esporta dati (JSON)</button>
+      <button class="btn block" style="margin-bottom:8px;" onclick="exportData()">Esporta dati (JSON)</button>
       <input type="file" id="importInput" accept="application/json" style="display:none;" onchange="importData(this)">
-      <button class="btn block" style="margin-bottom:8px;" onclick="document.getElementById('importInput').click()">⬆️ Importa export tracker esistente</button>
-      <button class="btn block" style="border-color:var(--red);color:#F87171;" onclick="wipeData()">🗑 Cancella tutti i dati</button>
+      <button class="btn block" style="margin-bottom:8px;" onclick="document.getElementById('importInput').click()">Importa export tracker esistente</button>
+      <button class="btn block" style="border-color:var(--red);color:#F87171;" onclick="wipeData()">Cancella tutti i dati</button>
     </div>
 
     <div class="card">
