@@ -1,4 +1,4 @@
-const CACHE = "hustler-tracker-v31";
+const CACHE = "hustler-tracker-v32";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./icon-192-maskable.png", "./icon-512-maskable.png"];
 
 self.addEventListener("install", (e) => {
@@ -31,4 +31,11 @@ self.addEventListener("fetch", (e) => {
         .catch(() => cached);
     })
   );
+});
+
+// v32 - la pagina puo' chiedere al worker in attesa di attivarsi subito.
+// Serve perche' il bottone "Aggiorna ora" faceva solo location.reload(): il worker
+// vecchio restava al comando e continuava a servire la versione vecchia dalla cache.
+self.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
 });

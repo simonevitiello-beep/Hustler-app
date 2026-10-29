@@ -301,12 +301,28 @@
 </div>
 <div class="fixedalert ok" id="updateAlert">
   <span>Nuova versione pronta.</span>
-  <button class="btn small primary" onclick="location.reload()">Aggiorna ora</button>
+  <button class="btn small primary" onclick="applicaAggiornamento()">Aggiorna ora</button>
   <button class="btn small ghost" onclick="document.getElementById('updateAlert').classList.remove('show')">Dopo</button>
 </div>
 
 <script>
+/* ===================== AGGIORNAMENTO DELL'APP =====================
+   Il bottone "Aggiorna ora" faceva solo location.reload(). Non bastava: il
+   worker nuovo resta in attesa finche' quello vecchio non molla il comando, e
+   quello vecchio serve dalla cache, quindi si ricaricava la stessa versione.
+   Ora la pagina gli dice di attivarsi subito; il reload parte da
+   "controllerchange". Se il worker non risponde entro un secondo e mezzo,
+   ricarico comunque.
+=================================================================== */
+function applicaAggiornamento(){
+  const reg = window.__swReg;
+  const w = reg && (reg.waiting || reg.installing);
+  if(w){ try{ w.postMessage({type:"SKIP_WAITING"}); }catch(e){} }
+  setTimeout(()=>location.reload(), 1500);
+}
+
 /* ============================= DATA LAYER ============================= */
+const APP_VERSION = "v32";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -3086,6 +3102,7 @@ function renderImpostazioni(app){
 
     <div class="card settingsgroup">
       <h2>Backup e dati</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">Versione installata: <b>${APP_VERSION}</b></div>
       <div id="storageInfo" style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Calcolo lo spazio…</div>
       <button class="btn block" style="margin-bottom:8px;" onclick="exportData()">Esporta dati (JSON)</button>
       <input type="file" id="importInput" accept="application/json" style="display:none;" onchange="importData(this)">
@@ -3452,6 +3469,7 @@ migraFotoInIdb().then(ok=>{ if(ok && currentTab==="progressi") render(); }).catc
 if("serviceWorker" in navigator){
   window.addEventListener("load", ()=>{
     navigator.serviceWorker.register("service-worker.js").then(reg=>{
+      window.__swReg = reg;
       const segnala = (w)=>{
         if(!w) return;
         w.addEventListener("statechange", ()=>{
@@ -3469,6 +3487,13 @@ if("serviceWorker" in navigator){
       // controlla se c'e' una versione nuova ogni volta che l'app torna in primo piano
       document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) reg.update().catch(()=>{}); });
     }).catch(()=>{});
+    // v32 - quando il worker nuovo prende il comando, ricarico una volta sola.
+    let giaRicaricato = false;
+    navigator.serviceWorker.addEventListener("controllerchange", ()=>{
+      if(giaRicaricato) return;
+      giaRicaricato = true;
+      location.reload();
+    });
   });
 }
 </script>
