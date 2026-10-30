@@ -336,7 +336,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v35";
+const APP_VERSION = "v36";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -702,7 +702,7 @@ const DEFAULT_DISPENSA = [
   {id:"fagiolini", nome:"Fagiolini lessati",    unita:"porzioni",  unitaS:"porzione",   perConf:2,    conf:"barattolo da 400 g",  consumo:0.7, orizzonte:10},
   {id:"farro",     nome:"Farro precotto",       unita:"buste",     unitaS:"busta",      perConf:1,    conf:"busta da 125 g",      consumo:0.6, orizzonte:10},
   {id:"yogurt",    nome:"Yogurt greco intero",  unita:"g",          perConf:1000, conf:"vascone da 1 kg",     consumo:200, orizzonte:10},
-  {id:"segale",    nome:"Pane di segale",       unita:"g",          perConf:500,  conf:"confezione da 500 g", consumo:38,  orizzonte:10},
+  {id:"segale",    nome:"Pane di segale",       unita:"g",          perConf:500,  conf:"confezione da 500 g", consumo:50,  orizzonte:10},
   {id:"avena",     nome:"Fiocchi d'avena",      unita:"g",          perConf:500,  conf:"busta da 500 g",      consumo:160, orizzonte:30},
   {id:"latte",     nome:"Latte senza lattosio", unita:"ml",         perConf:1000, conf:"litro",               consumo:320, orizzonte:30},
   {id:"mandorle",  nome:"Mandorle",             unita:"g",          perConf:300,  conf:"sacchetto da 300 g",  consumo:10,  orizzonte:30}
@@ -729,7 +729,7 @@ const DISTINTA_FISSO = {
   "uova3":           {uova:1},
   "avena-colazione": {avena:100, latte:200},
   "avena-sera":      {avena:60,  latte:120},
-  "custom-7ndt4alq": {segale:76}
+  "custom-7ndt4alq": {segale:100}
 };
 // Voci del piano fisso riconosciute dal nome (lo yogurt nasce quando finisce il whey).
 const DISTINTA_FISSO_NOME = [
