@@ -253,6 +253,18 @@
   .daysel button.active{background:var(--gold-light);border-color:var(--gold-light);color:#0A0A0A;}
   svg.chart{width:100%;height:auto;display:block;}
   .empty{color:var(--muted);font-size:13px;text-align:center;padding:20px 0;}
+  .rot-riga{display:flex;gap:10px;align-items:center;justify-content:space-between;
+    background:var(--card2);border:1px solid var(--border);border-radius:10px;
+    padding:11px 12px;margin-bottom:8px;}
+  .rot-info{min-width:0;flex:1;}
+  .rot-slot{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700;}
+  .rot-nome{font-size:14.5px;font-weight:700;color:var(--text);margin-top:2px;line-height:1.25;}
+  .rot-macro{font-size:11.5px;color:var(--muted);margin-top:3px;}
+  .rot-nota{font-size:11.5px;color:#FBBF24;margin-top:4px;line-height:1.35;}
+  .rot-riga .btn{flex:0 0 auto;}
+  .rot-domani{font-size:12px;color:var(--muted);margin-top:4px;padding-top:9px;
+    border-top:1px solid var(--border);line-height:1.45;}
+  .rot-domani b{color:#C6C6CC;font-weight:600;}
   .photogrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
   .photogrid img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;border:1px solid var(--border);}
   .settingsgroup{margin-bottom:18px;}
@@ -336,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v36";
+const APP_VERSION = "v37";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -736,6 +748,35 @@ const DISTINTA_FISSO_NOME = [
   {match:"yogurt greco", usa:{yogurt:200, mandorle:10}}
 ];
 
+
+/* --------------------- ROTAZIONE PASTI PRINCIPALI ---------------------
+   Il calendario comanda, lo stock ha diritto di veto.
+   Ciclo fisso di 10 giorni, 20 slot: 7 tonno, 7 tacchino, 6 fiocchi di latte.
+   E' la stessa proporzione gia' scritta nei consumi della dispensa
+   (0,7 + 0,7 + 0,6 al giorno), qui resa esplicita come calendario.
+   Vincoli rispettati dalla tabella: mai tonno due volte nello stesso giorno,
+   mai lo stesso piatto a pranzo e cena, e i freschi bilanciati tra i due
+   blocchi di 5 giorni (tacchino 4+3, fiocchi 3+3) cosi' ogni viaggio di
+   spesa copre la sua finestra senza avanzi. */
+const PIATTI_ROT = {
+  tonno:    {name:"Tonno e ceci",             kcal:307, pro:36, carb:22, fat:8,  costo:3.15},
+  tacchino: {name:"Tacchino e patate",        kcal:405, pro:38, carb:32, fat:13, costo:4.70},
+  fiocchi:  {name:"Fiocchi di latte e farro", kcal:442, pro:31, carb:47, fat:14, costo:3.95}
+};
+const ROTAZIONE = [
+  ["tonno","tacchino"],   // g1
+  ["fiocchi","tacchino"], // g2
+  ["tonno","fiocchi"],    // g3
+  ["tacchino","tonno"],   // g4
+  ["fiocchi","tacchino"], // g5
+  ["tonno","tacchino"],   // g6
+  ["fiocchi","tonno"],    // g7
+  ["tacchino","fiocchi"], // g8
+  ["tonno","tacchino"],   // g9
+  ["fiocchi","tonno"]     // g10
+];
+const SLOT_ROT = ["pranzo","cena"];
+
 function defaultDB(){
   return {
     version:1,
@@ -758,6 +799,8 @@ function defaultDB(){
     foodLibrary: JSON.parse(JSON.stringify(DEFAULT_FOODLIB)),
     dispensa: JSON.parse(JSON.stringify(DEFAULT_DISPENSA)).map(x=>Object.assign({stock:0}, x)),
     fresco: JSON.parse(JSON.stringify(DEFAULT_FRESCO)).map(x=>Object.assign({ultimaSpesa:""}, x)),
+    rotazioneOn: true,   // rotazione automatica dei pasti principali
+    rotazioneStart: "",  // data di inizio del ciclo di 10 giorni; vuota = parte al primo utilizzo
     barcodeCache: {},
     exdb: JSON.parse(JSON.stringify(DEFAULT_EXDB)),
     exNote: {}, // v21 - note fisse per esercizio {k:{txt, links:[{u,t}]}}. FUORI da exdb: la migrazione della scheda non le tocca.
@@ -777,6 +820,7 @@ migrateExdbV3();
 reconcileExdbRir();
 migraDispensa();
 migraFresco();
+migraPiattiRotazione();
 reconcileExdbShape();
 function loadDB(){
   try{
@@ -1321,6 +1365,89 @@ function scalaFisso(itemId, nome, deltaQty){
   const scalata = {}; Object.keys(d).forEach(k=> scalata[k] = d[k]*Math.abs(deltaQty));
   scalaDispensa(scalata, deltaQty > 0 ? -1 : 1);
 }
+
+/* --------------------- ROTAZIONE: motore --------------------- */
+// Il ciclo si ancora a una data. Se non c'e' ancora, parte da oggi.
+function rotazioneStart(){
+  if(!DB.rotazioneStart){ DB.rotazioneStart = todayStr(); saveDB(); }
+  return DB.rotazioneStart;
+}
+function giornoCiclo(dateStr){
+  const d = Math.round((new Date(dateStr) - new Date(rotazioneStart())) / 86400000);
+  return ((d % 10) + 10) % 10;
+}
+// Il veto vale solo se la dispensa e' stata compilata almeno una volta: finche' e'
+// tutta a zero non so cosa c'e' in casa, e bloccare ogni piatto sarebbe solo rumore.
+function dispensaAttiva(){
+  return (DB.dispensa||[]).some(v=>(Number(v.stock)||0) > 0);
+}
+function stockCopre(key){
+  const p = PIATTI_ROT[key];
+  if(!p) return false;
+  const d = distintaPasto(p.name);
+  if(!d) return true;
+  return Object.keys(d).every(id=>{
+    const v = voceDispensa(id);
+    return !v || (Number(v.stock)||0) >= d[id];
+  });
+}
+/* Cosa mangi in questo slot. Torna sempre un piatto, piu' il motivo se non e'
+   quello previsto dal calendario:
+     sostituito -> lo stock non copriva il previsto, ho scambiato
+     esaurito   -> non copre nessuno dei tre, propongo comunque il previsto */
+function piattoProposto(dateStr, slotIdx){
+  const g = giornoCiclo(dateStr);
+  const previsto = ROTAZIONE[g][slotIdx];
+  if(!dispensaAttiva() || stockCopre(previsto)) return {key:previsto, g:g};
+  // preferisco un piatto diverso da quello dell'altro slot, per non ripeterlo nel giorno
+  const altro = ROTAZIONE[g][slotIdx === 0 ? 1 : 0];
+  const ordine = Object.keys(PIATTI_ROT).filter(k=>k!==previsto && k!==altro)
+          .concat(Object.keys(PIATTI_ROT).filter(k=>k!==previsto && k===altro));
+  const alt = ordine.find(stockCopre);
+  if(alt) return {key:alt, g:g, sostituito:true, invece:previsto};
+  return {key:previsto, g:g, esaurito:true};
+}
+function pastoRegistrato(dateStr, slotKey){
+  return (DB.meals[dateStr]||[]).find(m=>m.slot===slotKey) || null;
+}
+function registraRotazione(dateStr, slotKey, piattoKey){
+  const p = PIATTI_ROT[piattoKey];
+  if(!p) return;
+  if(pastoRegistrato(dateStr, slotKey)){ toast("In questo slot c'e' gia' un pasto"); return; }
+  if(!DB.meals[dateStr]) DB.meals[dateStr] = [];
+  DB.meals[dateStr].push({id:uid(), name:p.name, kcal:p.kcal, pro:p.pro, carb:p.carb,
+                          fat:p.fat, costo:p.costo, slot:slotKey});
+  scalaPasto(p.name, -1);
+  saveDB(); toast(p.name + " registrato"); render();
+}
+function resetRotazione(){
+  if(!confirm("Far ripartire il ciclo da oggi?\n\nIl giorno 1 della rotazione diventa oggi.")) return;
+  DB.rotazioneStart = todayStr();
+  saveDB(); toast("Ciclo ripartito da oggi"); render();
+}
+function toggleRotazione(){
+  DB.rotazioneOn = !DB.rotazioneOn;
+  saveDB(); toast(DB.rotazioneOn ? "Rotazione attiva" : "Rotazione sospesa"); render();
+}
+// I tre piatti della rotazione devono esistere in libreria con i valori giusti:
+// sono il motore del sistema, non piatti occasionali.
+function migraPiattiRotazione(){
+  if(!Array.isArray(DB.foodLibrary)) return;
+  let cambiato = false;
+  Object.keys(PIATTI_ROT).forEach(k=>{
+    const def = PIATTI_ROT[k];
+    const cur = DB.foodLibrary.find(f=>f.name.toLowerCase() === def.name.toLowerCase());
+    if(!cur){
+      DB.foodLibrary.push({name:def.name, kcal:def.kcal, pro:def.pro, carb:def.carb, fat:def.fat, costo:def.costo});
+      cambiato = true; return;
+    }
+    if(cur.kcal!==def.kcal || cur.pro!==def.pro || cur.carb!==def.carb || cur.fat!==def.fat || (cur.costo||0)!==def.costo){
+      cur.kcal=def.kcal; cur.pro=def.pro; cur.carb=def.carb; cur.fat=def.fat; cur.costo=def.costo;
+      cambiato = true;
+    }
+  });
+  if(cambiato) saveDB();
+}
 // Quante confezioni servono per coprire l'orizzonte di quella voce.
 function confDaComprare(v){
   const serve = (Number(v.consumo)||0) * (Number(v.orizzonte)||0) - (Number(v.stock)||0);
@@ -1617,7 +1744,7 @@ function renderOggi(app){
   // tutto lo schema. E' un avviso, non un blocco.
   const wlIeri = DB.workoutLog[yest];
   if(wlIeri && wlIeri.done && GIORNI_GAMBE.indexOf(wlIeri.giorno) >= 0){
-    banners += `<div class="banner bad" style="border-width:2px;"><b>\u{1F6D1} Oggi \u00e8 riposo.</b> Ieri hai fatto <b>${DB.exdb[wlIeri.giorno].label}</b>, e il giorno dopo le gambe non ci si allena. La prossima seduta \u00e8 da domani.</div>`;
+    banners += `<div class="banner bad" style="border-width:2px;"><b>Oggi \u00e8 riposo.</b> Ieri hai fatto <b>${DB.exdb[wlIeri.giorno].label}</b>, e il giorno dopo le gambe non ci si allena. La prossima seduta \u00e8 da domani.</div>`;
   }
   if(totalsYest.kcal>0 && totalsYest.kcal < 1500){
     banners += `<div class="banner bad">Ieri sotto le 1500 kcal (${Math.round(totalsYest.kcal)}). Aspettati meno lucidità ed energia nelle call di oggi — recupera con calma, non saltare i prossimi pasti.</div>`;
@@ -1646,7 +1773,7 @@ function renderOggi(app){
   // altrimenti sarebbero due avvisi che dicono la stessa cosa.
   const bfFattaSettimana = DB.pesoLog.some(p=>p.date>=lunediSettimana && p.date<=t && typeof p.bf === "number");
   if(pesoFattoSettimana && !bfFattaSettimana){
-    banners += `<div class="banner warn">\u{1F4CA} Questa settimana manca la <b>percentuale di grasso</b>. Una lettura basta, sempre nelle stesse condizioni: appena sveglio, a digiuno, dopo il bagno. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
+    banners += `<div class="banner warn">Questa settimana manca la <b>percentuale di grasso</b>. Una lettura basta, sempre nelle stesse condizioni: appena sveglio, a digiuno, dopo il bagno. <button class="btn small" style="margin-top:8px;" onclick="goToProgressi()">Vai a Progressi</button></div>`;
   }
   const fotoFattaSettimana = DB.fotoLog.some(f=>f.date>=lunediSettimana && f.date<=t);
   if(!fotoFattaSettimana){
@@ -1685,6 +1812,8 @@ function renderOggi(app){
       </div>
     </div>
 
+    ${renderRotazione(t)}
+
     <div class="card">
       <h2>Allenamento</h2>
       <div class="row between" style="margin-bottom:8px;">
@@ -1705,6 +1834,58 @@ function renderOggi(app){
       ${renderMealsList(t, false)}
     </div>
   `;
+}
+/* --------------------- ROTAZIONE: schermata --------------------- */
+function rigaRotazione(dateStr, slotIdx, compatta){
+  const slotKey = SLOT_ROT[slotIdx];
+  const label = slotIdx === 0 ? "Pranzo" : "Cena";
+  const reg = pastoRegistrato(dateStr, slotKey);
+  if(reg && !compatta){
+    return `<div class="rot-riga">
+      <div class="rot-info">
+        <div class="rot-slot">${label}</div>
+        <div class="rot-nome">${reg.name}</div>
+      </div>
+      <span class="pill ok">Fatto</span>
+    </div>`;
+  }
+  const prop = piattoProposto(dateStr, slotIdx);
+  const piatto = PIATTI_ROT[prop.key];
+  if(compatta) return `<b>${piatto.name}</b>`;
+  let nota = "";
+  if(prop.sostituito){
+    nota = `<div class="rot-nota">Al posto di ${PIATTI_ROT[prop.invece].name}: la dispensa non lo copre.</div>`;
+  } else if(prop.esaurito){
+    nota = `<div class="rot-nota">Dispensa scarica per tutti e tre i piatti. Controlla la spesa.</div>`;
+  }
+  return `<div class="rot-riga">
+    <div class="rot-info">
+      <div class="rot-slot">${label}</div>
+      <div class="rot-nome">${piatto.name}</div>
+      <div class="rot-macro">${piatto.kcal} kcal · ${piatto.pro}g pro · ${piatto.costo.toFixed(2)}€</div>
+      ${nota}
+    </div>
+    <button class="btn small" onclick="registraRotazione('${dateStr}','${slotKey}','${prop.key}')">Registra</button>
+  </div>`;
+}
+function renderRotazione(dateStr){
+  if(DB.rotazioneOn === false){
+    return `<div class="card">
+      <div class="row between"><h2 style="margin:0;">Pasti principali</h2>
+        <button class="btn small" onclick="toggleRotazione()">Riattiva</button></div>
+      <div class="empty" style="margin-top:10px;">Rotazione sospesa: scegli tu pranzo e cena.</div>
+    </div>`;
+  }
+  const dom = addDays(dateStr, 1);
+  return `<div class="card">
+    <div class="row between" style="margin-bottom:10px;">
+      <h2 style="margin:0;">Pasti principali</h2>
+      <span class="pill muted">Giorno ${giornoCiclo(dateStr)+1} di 10</span>
+    </div>
+    ${rigaRotazione(dateStr, 0)}
+    ${rigaRotazione(dateStr, 1)}
+    <div class="rot-domani">Domani: ${rigaRotazione(dom,0,true)} · ${rigaRotazione(dom,1,true)}</div>
+  </div>`;
 }
 function macroBar(label, val, target, unit){
   const pct = target>0 ? Math.min(100, Math.round((val/target)*100)) : 0;
@@ -3324,6 +3505,22 @@ function renderImpostazioni(app){
       <h2>Inizio programma</h2>
       <div class="field"><input type="date" id="programStart" value="${DB.programStart}"></div>
       <button class="btn block" onclick="saveProgramStart()">Salva</button>
+    </div>
+
+    <div class="card settingsgroup">
+      <h2>Rotazione pasti</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+        Ciclo fisso di 10 giorni sui pasti principali: 7 volte tonno e ceci, 7 tacchino e patate,
+        6 fiocchi di latte e farro. \u00c8 la stessa proporzione con cui \u00e8 costruita la spesa,
+        quindi le scorte si svuotano alla velocit\u00e0 con cui le compri. Se un piatto non \u00e8
+        in dispensa, la proposta scala sul primo disponibile e te lo dice.
+      </div>
+      <div class="row between" style="margin-bottom:10px;">
+        <div style="font-size:13px;">Stato: <b>${DB.rotazioneOn === false ? "sospesa" : "attiva"}</b></div>
+        <span class="pill ${DB.rotazioneOn === false ? "muted" : "ok"}">Giorno ${giornoCiclo(todayStr())+1} di 10</span>
+      </div>
+      <button class="btn block" onclick="toggleRotazione()">${DB.rotazioneOn === false ? "Riattiva la rotazione" : "Sospendi la rotazione"}</button>
+      <button class="btn block" style="margin-top:8px;" onclick="resetRotazione()">Fai ripartire il ciclo da oggi</button>
     </div>
 
     <div class="card settingsgroup">
