@@ -348,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v37";
+const APP_VERSION = "v38";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -723,7 +723,7 @@ const DEFAULT_DISPENSA = [
    Ha pero' un ritmo prevedibile, quindi entra in lista ogni tot giorni dall'ultima spesa. */
 const DEFAULT_FRESCO = [
   {id:"tacchino",   nome:"Fesa di tacchino",     cadenza:5, qta:"4 confezioni da 150 g"},
-  {id:"fiocchi",    nome:"Fiocchi di latte",     cadenza:5, qta:"2 vaschette da 400 g"},
+  {id:"fiocchi",    nome:"Fiocchi di latte",     cadenza:10, qta:"3 confezioni da 2 porzioni da 175 g"},
   {id:"patate",     nome:"Patate lesse pronte",  cadenza:5, qta:"2 buste da 300 g"},
   {id:"pomodorini", nome:"Pomodorini",           cadenza:5, qta:"2 vaschette da 500 g"},
   {id:"insalata",   nome:"Insalata in busta",    cadenza:5, qta:"2 buste"},
@@ -761,7 +761,7 @@ const DISTINTA_FISSO_NOME = [
 const PIATTI_ROT = {
   tonno:    {name:"Tonno e ceci",             kcal:307, pro:36, carb:22, fat:8,  costo:3.15},
   tacchino: {name:"Tacchino e patate",        kcal:405, pro:38, carb:32, fat:13, costo:4.70},
-  fiocchi:  {name:"Fiocchi di latte e farro", kcal:442, pro:31, carb:47, fat:14, costo:3.95}
+  fiocchi:  {name:"Fiocchi di latte e farro", kcal:418, pro:28, carb:46, fat:13, costo:3.78}
 };
 const ROTAZIONE = [
   ["tonno","tacchino"],   // g1
