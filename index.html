@@ -348,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v41";
+const APP_VERSION = "v42";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -687,7 +687,7 @@ const DEFAULT_PIANO_FISSO = {
     {id:"avena-colazione", l:"Avena overnight (100g + 150-200ml latte)", unit:"porzione", kcalU:432, proU:18.2, carbU:69.5, fatU:7.2, defaultQty:1, costoU:0.50},
   ],
   "spuntino-am": [
-    {id:"whey-acqua", l:"Whey (30g) in acqua + creatina", unit:"porzione", kcalU:108, proU:17, carbU:8.7, fatU:0.5, defaultQty:1, costoU:0.65},
+    {id:"whey-acqua", l:"Yogurt intero 200 g + 10 g mandorle + creatina", unit:"porzione", kcalU:206, proU:9.5, carbU:11.5, fatU:13.4, defaultQty:1, costoU:0.95},
   ],
   "spuntino-pm": [
     {id:"whey-latte", l:"Whey (30g) in 200ml latte", unit:"porzione", kcalU:178, proU:24, carbU:18.7, fatU:0.7, defaultQty:1, costoU:0.72},
@@ -714,7 +714,7 @@ const DEFAULT_DISPENSA = [
   {id:"ceci",      nome:"Ceci lessati",         unita:"porzioni",  unitaS:"porzione",   perConf:2,    conf:"barattolo da 400 g",  consumo:0.7, orizzonte:10},
   {id:"fagiolini", nome:"Fagiolini lessati",    unita:"porzioni",  unitaS:"porzione",   perConf:2,    conf:"barattolo da 400 g",  consumo:0.7, orizzonte:10},
   {id:"farro",     nome:"Farro precotto",       unita:"buste",     unitaS:"busta",      perConf:1,    conf:"busta da 125 g",      consumo:0.6, orizzonte:10},
-  {id:"yogurt",    nome:"Yogurt greco intero",  unita:"g",          perConf:1000, conf:"vascone da 1 kg",     consumo:200, orizzonte:10},
+  {id:"yogurt",    nome:"Yogurt intero",        unita:"g",          perConf:1000, conf:"vaschetta da 1 kg",   consumo:200, orizzonte:10},
   {id:"segale",    nome:"Pane di segale",       unita:"g",          perConf:500,  conf:"confezione da 500 g", consumo:50,  orizzonte:10},
   {id:"avena",     nome:"Fiocchi d'avena",      unita:"g",          perConf:500,  conf:"busta da 500 g",      consumo:160, orizzonte:30},
   {id:"latte",     nome:"Latte senza lattosio", unita:"ml",         perConf:1000, conf:"litro",               consumo:320, orizzonte:30},
@@ -742,12 +742,13 @@ const DISTINTA_FISSO = {
   "avena-colazione": {avena:100, latte:200},
   "avena-sera":      {avena:60,  latte:120},
   "custom-7ndt4alq": {segale:100},
+  "whey-acqua":      {yogurt:200, mandorle:10},
   "banana":          {banane:1},
   "custom-2sc5rbvx": {kiwi:1}
 };
 // Voci del piano fisso riconosciute dal nome (lo yogurt nasce quando finisce il whey).
 const DISTINTA_FISSO_NOME = [
-  {match:"yogurt greco", usa:{yogurt:200, mandorle:10}}
+  {match:"yogurt", usa:{yogurt:200, mandorle:10}}
 ];
 
 
@@ -814,6 +815,7 @@ reconcileFoodLibrary();
 reconcilePianoFisso();
 migrateFissoOrfani();
 migraPiano2200();
+migraYogurt();
 migrateExdbV3();
 reconcileExdbRir();
 migraDispensa();
@@ -1093,6 +1095,37 @@ function migraPiano2200(){
   }
 
   DB.pianoVersion = PIANO_VERSION;
+  saveDB();
+}
+/* Revisione del 3 novembre 2026 — il whey finisce, entra lo yogurt.
+   Lo scambio serve a prendere grassi, non proteine: il piano stava a 59 g di grassi
+   contro un target di 70, e il whey ne ha 3,5. Lo yogurt intero Vipiteno (74 kcal,
+   3,7 pro, 5,5 carb, 4,2 fat per 100 g) ne porta 13,4 con le mandorle.
+   Costo: le proteine scendono a 135 g al giorno, cioe' 2,09 g per kg di massa magra.
+   E' il limite basso del range che preserva il muscolo in deficit, accettato come
+   soluzione dei dieci giorni che servono a finire i 2 kg comprati.
+   La voce tiene l'id "whey-acqua": lo storico non si tocca, ogni giorno registrato
+   ha i suoi valori congelati in pianoFissoSnap. */
+function migraYogurt(){
+  const YOGURT_VERSION = 3;
+  if(Number(DB.pianoVersion||0) >= YOGURT_VERSION) return;
+  const lista = (DB.pianoFisso && DB.pianoFisso["spuntino-am"]) || [];
+  const v = lista.find(it => it && it.id === "whey-acqua");
+  if(v){
+    v.l = "Yogurt intero 200 g + 10 g mandorle + creatina";
+    v.kcalU = 206; v.proU = 9.5; v.carbU = 11.5; v.fatU = 13.4;
+    v.costoU = 0.95;
+    v.defaultQty = 1;
+    v.customized = true;   // cosi' reconcilePianoFisso non lo riallinea al default
+  }
+  /* Target allineati nello stesso momento, come deciso il 2/11: i carboidrati a 227
+     erano un residuo, e con 150 di proteine e 70 di grassi il resto delle 2.200 fa 240.
+     Si toccano solo se sono ancora i valori vecchi, per non sovrascrivere una modifica a mano. */
+  if(DB.targets){
+    if(Number(DB.targets.pro) === 158) DB.targets.pro = 150;
+    if(Number(DB.targets.carb) === 227) DB.targets.carb = 240;
+  }
+  DB.pianoVersion = YOGURT_VERSION;
   saveDB();
 }
 function migrateExdbV3(){
