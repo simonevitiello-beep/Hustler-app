@@ -348,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v39";
+const APP_VERSION = "v40";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -704,9 +704,10 @@ const DEFAULT_PIANO_FISSO = {
    stock e' in UNITA' (uova, scatolette, porzioni, grammi, ml), non in confezioni:
    il consumo scende in unita' quando registri un pasto o cambi il piano fisso.
    Le confezioni servono solo per dire quanto comprare.
-   Fresco escluso di proposito: li' decide la scadenza, non la quantita'.
+   Dalla v40 anche i deperibili stanno qui: cambia solo la soglia, piu' bassa.
 ==================================================== */
-const SOGLIA_SPESA = 3; // giorni di autonomia sotto i quali la voce entra in lista
+const SOGLIA_SPESA = 3;        // default: scorte che si comprano in un viaggio solo
+const SOGLIA_FRESCO = 2;       // deperibili: si comprano sotto casa, due giorni di preavviso bastano
 const DEFAULT_DISPENSA = [
   {id:"uova",      nome:"Uova",                 unita:"uova",      unitaS:"uovo",       perConf:10,   conf:"confezione da 10",    consumo:3,   orizzonte:10},
   {id:"tonno",     nome:"Tonno al naturale",    unita:"scatolette",unitaS:"scatoletta", perConf:1,    conf:"scatoletta da 160 g", consumo:0.7, orizzonte:10},
@@ -717,31 +718,32 @@ const DEFAULT_DISPENSA = [
   {id:"segale",    nome:"Pane di segale",       unita:"g",          perConf:500,  conf:"confezione da 500 g", consumo:50,  orizzonte:10},
   {id:"avena",     nome:"Fiocchi d'avena",      unita:"g",          perConf:500,  conf:"busta da 500 g",      consumo:160, orizzonte:30},
   {id:"latte",     nome:"Latte senza lattosio", unita:"ml",         perConf:1000, conf:"litro",               consumo:320, orizzonte:30},
-  {id:"mandorle",  nome:"Mandorle",             unita:"g",          perConf:300,  conf:"sacchetto da 300 g",  consumo:10,  orizzonte:30}
-];
-/* Il fresco non ha contatore: dura pochi giorni e decide la scadenza, non la quantita'.
-   Ha pero' un ritmo prevedibile, quindi entra in lista ogni tot giorni dall'ultima spesa. */
-const DEFAULT_FRESCO = [
-  {id:"tacchino",   nome:"Fesa di tacchino",     cadenza:5, qta:"4 confezioni da 150 g"},
-  {id:"fiocchi",    nome:"Fiocchi di latte",     cadenza:10, qta:"3 confezioni da 2 porzioni da 175 g"},
-  {id:"patate",     nome:"Patate lesse pronte",  cadenza:5, qta:"2 buste da 300 g"},
-  {id:"pomodorini", nome:"Pomodorini",           cadenza:5, qta:"2 vaschette da 500 g"},
-  {id:"insalata",   nome:"Insalata in busta",    cadenza:5, qta:"2 buste"},
-  {id:"kiwi",       nome:"Kiwi gialli",          cadenza:5, qta:"10 kiwi"},
-  {id:"banane",     nome:"Banane",               cadenza:5, qta:"5 banane"}
+  {id:"mandorle",  nome:"Mandorle",             unita:"g",          perConf:300,  conf:"sacchetto da 300 g",  consumo:10,  orizzonte:30},
+  /* v40 - i deperibili sono entrati qui. Prima andavano a cadenza fissa di 5 giorni senza
+     contatore: reggeva finche' i pasti li sceglieva Simone, non piu' con la rotazione.
+     Ora si contano come tutto il resto, con soglia 2 invece di 3. */
+  {id:"tacchino",  nome:"Fesa di tacchino",     unita:"porzioni",  unitaS:"porzione", perConf:1,    conf:"confezione da 150 g", consumo:0.7, orizzonte:5,  soglia:SOGLIA_FRESCO},
+  {id:"patate",    nome:"Patate lesse pronte",  unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"busta da 300 g",      consumo:0.7, orizzonte:10, soglia:SOGLIA_FRESCO},
+  {id:"fiocchi",   nome:"Fiocchi di latte",     unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"confezione da 2 vaschette da 175 g", consumo:0.6, orizzonte:10, soglia:SOGLIA_FRESCO},
+  {id:"pomodorini",nome:"Pomodorini",           unita:"g",          perConf:500,  conf:"vaschetta da 500 g", consumo:165, orizzonte:5, soglia:SOGLIA_FRESCO},
+  {id:"insalata",  nome:"Insalata in busta",    unita:"g",          perConf:150,  conf:"busta da 150 g",     consumo:30,  orizzonte:5, soglia:SOGLIA_FRESCO},
+  {id:"kiwi",      nome:"Kiwi gialli",          unita:"kiwi",      unitaS:"kiwi",     perConf:1,    conf:"kiwi",                consumo:2,   orizzonte:5, soglia:SOGLIA_FRESCO},
+  {id:"banane",    nome:"Banane",               unita:"banane",    unitaS:"banana",   perConf:1,    conf:"banana",              consumo:1,   orizzonte:5, soglia:SOGLIA_FRESCO}
 ];
 // Quanto consuma un piatto della libreria. Chiave = nome in minuscolo.
 const DISTINTA_PASTI = {
-  "tonno e ceci":             {tonno:1, ceci:1},
-  "tacchino e patate":        {fagiolini:1},
-  "fiocchi di latte e farro": {farro:1}
+  "tonno e ceci":             {tonno:1, ceci:1, pomodorini:150},
+  "tacchino e patate":        {tacchino:1, patate:1, fagiolini:1},
+  "fiocchi di latte e farro": {fiocchi:1, farro:1, pomodorini:100, insalata:50}
 };
 // Quanto consuma UNA unita' di una voce del piano fisso.
 const DISTINTA_FISSO = {
   "uova3":           {uova:1},
   "avena-colazione": {avena:100, latte:200},
   "avena-sera":      {avena:60,  latte:120},
-  "custom-7ndt4alq": {segale:100}
+  "custom-7ndt4alq": {segale:100},
+  "banana":          {banane:1},
+  "custom-2sc5rbvx": {kiwi:1}
 };
 // Voci del piano fisso riconosciute dal nome (lo yogurt nasce quando finisce il whey).
 const DISTINTA_FISSO_NOME = [
@@ -789,16 +791,12 @@ function defaultDB(){
     pianoFissoLog: {}, // {data: {slot: {itemId: quantità}}}
     pianoFissoSnap: {}, // {data: {slot: {itemId: macro congelate al momento della registrazione}}}
     pianoFissoArchivio: [], // alimenti tolti dal piano ma ancora presenti nello storico
-    nutribeesStock: 0, // pasti Nutribees rimasti in scorta
-    nutribeesLeadDays: 7, // giorni di attesa per una nuova consegna
-    nutribeesRatePerDay: 2, // pasti Nutribees consumati in media al giorno (pranzo+cena)
     workoutLog: {},
     sonnoLog: {},
     pesoLog: [],
     fotoLog: [],
     foodLibrary: JSON.parse(JSON.stringify(DEFAULT_FOODLIB)),
     dispensa: JSON.parse(JSON.stringify(DEFAULT_DISPENSA)).map(x=>Object.assign({stock:0}, x)),
-    fresco: JSON.parse(JSON.stringify(DEFAULT_FRESCO)).map(x=>Object.assign({ultimaSpesa:""}, x)),
     rotazioneOn: true,   // rotazione automatica dei pasti principali
     rotazioneStart: "",  // data di inizio del ciclo di 10 giorni; vuota = parte al primo utilizzo
     barcodeCache: {},
@@ -819,7 +817,7 @@ migraPiano2200();
 migrateExdbV3();
 reconcileExdbRir();
 migraDispensa();
-migraFresco();
+migraViaFresco();
 migraPiattiRotazione();
 reconcileExdbShape();
 function loadDB(){
@@ -1285,21 +1283,18 @@ function getNutribeesFor(dateStr, slotKey){
 function setNutribeesPasto(dateStr, slotKey, libIdx){
   const f = DB.foodLibrary[libIdx];
   if(!f) return;
-  const already = (DB.meals[dateStr]||[]).some(m=>m.slot===slotKey);
+  const precedente = (DB.meals[dateStr]||[]).find(m=>m.slot===slotKey);
   DB.meals[dateStr] = (DB.meals[dateStr]||[]).filter(m=>m.slot!==slotKey);
   DB.meals[dateStr].push({id:uid(), name:f.name, kcal:f.kcal, pro:f.pro, carb:f.carb, fat:f.fat, costo:f.costo||0, slot:slotKey});
-  if(!already){ DB.nutribeesStock = Math.max(0, (DB.nutribeesStock||0) - 1); }
+  if(precedente) scalaPasto(precedente.name, +1);   // rimetto in dispensa quello che sostituisco
+  scalaPasto(f.name, -1);
   saveDB(); toast(`${f.name} aggiunto`); render();
 }
 function removeNutribeesPasto(dateStr, slotKey){
-  const had = (DB.meals[dateStr]||[]).some(m=>m.slot===slotKey);
+  const tolto = (DB.meals[dateStr]||[]).find(m=>m.slot===slotKey);
   DB.meals[dateStr] = (DB.meals[dateStr]||[]).filter(m=>m.slot!==slotKey);
-  if(had){ DB.nutribeesStock = (DB.nutribeesStock||0) + 1; }
+  if(tolto) scalaPasto(tolto.name, +1);
   saveDB(); render();
-}
-function nutribeesGiorniResidui(){
-  const rate = DB.nutribeesRatePerDay || 2;
-  return rate>0 ? (DB.nutribeesStock||0)/rate : Infinity;
 }
 /* --------------------- DISPENSA: logica --------------------- */
 function migraDispensa(){
@@ -1309,7 +1304,7 @@ function migraDispensa(){
     const cur = DB.dispensa.find(x=>x.id===def.id);
     if(!cur){ DB.dispensa.push(Object.assign({stock:0}, def)); cambiato = true; return; }
     // i parametri li decide il default, lo stock resta di Simone
-    ["nome","unita","unitaS","perConf","conf","consumo","orizzonte"].forEach(k=>{
+    ["nome","unita","unitaS","perConf","conf","consumo","orizzonte","soglia"].forEach(k=>{
       if(cur[k] !== def[k]){ cur[k] = def[k]; cambiato = true; }
     });
     if(typeof cur.stock !== "number"){ cur.stock = 0; cambiato = true; }
@@ -1317,25 +1312,15 @@ function migraDispensa(){
   if(cambiato) saveDB();
 }
 function voceDispensa(id){ return (DB.dispensa||[]).find(x=>x.id===id); }
-function migraFresco(){
-  if(!Array.isArray(DB.fresco)) DB.fresco = [];
-  let cambiato = false;
-  DEFAULT_FRESCO.forEach(def=>{
-    const cur = DB.fresco.find(x=>x.id===def.id);
-    if(!cur){ DB.fresco.push(Object.assign({ultimaSpesa:""}, def)); cambiato = true; return; }
-    ["nome","cadenza","qta"].forEach(k=>{ if(cur[k]!==def[k]){ cur[k]=def[k]; cambiato = true; } });
+function migraViaFresco(){
+  /* v40 - DB.fresco non esiste piu': le sue voci sono in dispensa con il proprio stock.
+     Qui tolgo solo il vecchio contenitore e i contatori Nutribees. Lo stock dei freschi
+     parte da 0 perche' il fresco non aveva mai avuto un numero da ereditare. */
+  let via = false;
+  ["fresco","nutribeesStock","nutribeesLeadDays","nutribeesRatePerDay"].forEach(k=>{
+    if(DB[k] !== undefined){ delete DB[k]; via = true; }
   });
-  if(cambiato) saveDB();
-}
-// Giorni che mancano alla prossima spesa di una voce fresca. <= 0 vuol dire "tocca adesso".
-function giorniAllaSpesa(f){
-  if(!f.ultimaSpesa) return 0;
-  const g = Math.floor((new Date(todayStr()) - new Date(f.ultimaSpesa)) / 86400000);
-  return (Number(f.cadenza)||5) - g;
-}
-function listaFresco(){
-  return (DB.fresco||[]).filter(f=>giorniAllaSpesa(f) <= 0)
-    .sort((a,b)=>giorniAllaSpesa(a)-giorniAllaSpesa(b));
+  if(via) saveDB();
 }
 function giorniAutonomia(v){
   const c = Number(v.consumo)||0;
@@ -1454,9 +1439,10 @@ function confDaComprare(v){
   if(serve <= 0) return 0;
   return Math.max(1, Math.ceil(serve / (Number(v.perConf)||1)));
 }
+function sogliaDi(v){ return Number(v.soglia) || SOGLIA_SPESA; }
 function listaSpesa(){
   return (DB.dispensa||[])
-    .filter(v=>(Number(v.consumo)||0) > 0 && giorniAutonomia(v) < SOGLIA_SPESA)
+    .filter(v=>(Number(v.consumo)||0) > 0 && giorniAutonomia(v) < sogliaDi(v))
     .sort((a,b)=>giorniAutonomia(a)-giorniAutonomia(b));
 }
 function nFmt(n){
@@ -1466,41 +1452,6 @@ function nFmt(n){
 function giorniFmt(g){
   if(!isFinite(g)) return "\u2014";
   return g >= 10 ? String(Math.round(g)) : nFmt(g);
-}
-
-function nutribeesAvviso(){
-  const giorni = nutribeesGiorniResidui();
-  const lead = DB.nutribeesLeadDays || 7;
-  return { urgente: giorni <= lead, giorni };
-}
-function nutribeesSuggerimenti(){
-  const oggi = todayStr();
-  const wd = weekdayOf(oggi); // 0=dom..6=sab
-  const daysSinceMonday = (wd+6)%7;
-  const lunedi = addDays(oggi, -daysSinceMonday);
-  const giorniTrascorsi = daysSinceMonday+1;
-  let tot = {pro:0,carb:0,fat:0};
-  for(let i=0;i<giorniTrascorsi;i++){
-    const t = dayTotals(addDays(lunedi,i));
-    tot.pro+=t.pro; tot.carb+=t.carb; tot.fat+=t.fat;
-  }
-  const targetSettimana = {
-    pro: DB.targets.pro*giorniTrascorsi,
-    carb: DB.targets.carb*giorniTrascorsi,
-    fat: DB.targets.fat*giorniTrascorsi,
-  };
-  const scostamenti = [
-    {k:"pro", label:"proteine", pct: targetSettimana.pro>0 ? tot.pro/targetSettimana.pro : 1},
-    {k:"carb", label:"carboidrati", pct: targetSettimana.carb>0 ? tot.carb/targetSettimana.carb : 1},
-    {k:"fat", label:"grassi", pct: targetSettimana.fat>0 ? tot.fat/targetSettimana.fat : 1},
-  ];
-  scostamenti.sort((a,b)=>a.pct-b.pct);
-  const piuIndietro = scostamenti[0];
-  if(piuIndietro.pct >= 0.95) return null;
-  const lib = nutribeesLib();
-  if(lib.length===0) return null;
-  const ordinati = [...lib].sort((a,b)=> b[piuIndietro.k]-a[piuIndietro.k]);
-  return { macro: piuIndietro.label, pct: Math.round(piuIndietro.pct*100), piatti: ordinati.slice(0,3) };
 }
 // Prossimo giorno di scheda: calcolato SEMPRE dall'ultima sessione segnata "fatta",
 // mai dal giorno del calendario. Se non hai mai completato nulla, si parte dal giorno 1.
@@ -1749,16 +1700,12 @@ function renderOggi(app){
   if(totalsYest.kcal>0 && totalsYest.kcal < 1500){
     banners += `<div class="banner bad">Ieri sotto le 1500 kcal (${Math.round(totalsYest.kcal)}). Aspettati meno lucidità ed energia nelle call di oggi — recupera con calma, non saltare i prossimi pasti.</div>`;
   }
-  const spesa = listaSpesa().concat(listaFresco());
+  const spesa = listaSpesa();
   if(spesa.length){
     const nomi = spesa.slice(0,3).map(v=>v.nome.toLowerCase()).join(", ");
     const altro = spesa.length>3 ? ` e altre ${spesa.length-3}` : "";
     banners += `<div class="banner warn">Lista della spesa: <b>${spesa.length} ${spesa.length===1?"voce":"voci"}</b>. Stanno finendo ${nomi}${altro}.
       <button class="btn small" style="margin-top:8px;" onclick="vaiATab('dispensa')">Vai alla dispensa</button></div>`;
-  }
-  const nbAvviso = nutribeesAvviso();
-  if(nbAvviso.urgente){
-    banners += `<div class="banner bad">Scorte Nutribees: ${DB.nutribeesStock||0} pasti rimasti (~${Math.floor(nbAvviso.giorni)} giorni). Con ${DB.nutribeesLeadDays||7} giorni di consegna, ordina ora.</div>`;
   }
   // Promemoria pesata e foto: due avvisi indipendenti, entrambi partono dal lunedì della settimana
   // corrente e restano finché non fai l'azione specifica — non spariscono da soli col cambio di giorno.
@@ -1908,7 +1855,6 @@ function renderPasti(app){
   document.getElementById("headerSub").textContent = niceDate(selDate);
   const totals = dayTotals(selDate);
   const costoGiorno = dayCostTotal(selDate);
-  const sugg = nutribeesSuggerimenti();
 
   app.innerHTML = `
     <div class="daysel" id="dateStrip"></div>
@@ -1923,7 +1869,6 @@ function renderPasti(app){
       </div>
     </div>
 
-    ${sugg ? `<div class="banner warn">Questa settimana sei al ${sugg.pct}% del target ${sugg.macro}. Per pranzo/cena prova: ${sugg.piatti.map(p=>p.name.replace('Nutribees ','')).join(' · ')}.</div>` : ""}
 
     <div class="card">
       <h2>Piano fisso di oggi</h2>
@@ -1934,12 +1879,12 @@ function renderPasti(app){
     </div>
 
     <div class="card">
-      <h2>Pranzo — Nutribees</h2>
+      <h2>Pranzo</h2>
       ${renderNutribeesSlot("pranzo")}
     </div>
 
     <div class="card">
-      <h2>Cena — Nutribees</h2>
+      <h2>Cena</h2>
       ${renderNutribeesSlot("cena")}
     </div>
 
@@ -2043,14 +1988,23 @@ function renderNutribeesSlot(slotKey){
         <button class="del" onclick="removeNutribeesPasto('${selDate}','${slotKey}')">✕</button>
       </div>
     ` : `<div class="empty">Nessun piatto scelto</div>`}
-    <input type="text" placeholder="Cerca piatto Nutribees..." value="${nutribeesSearchQuery[slotKey]||''}"
+    <input type="text" placeholder="Cerca un piatto..." value="${nutribeesSearchQuery[slotKey]||''}"
       oninput="setNutribeesSearch('${slotKey}', this.value)" style="margin-top:10px;margin-bottom:8px;">
     <div id="nutribeesResults-${slotKey}">${renderNutribeesResultsHtml(slotKey)}</div>
   `;
 }
 function renderNutribeesResultsHtml(slotKey){
   const query = (nutribeesSearchQuery[slotKey]||"").toLowerCase();
-  const lib = nutribeesLib().filter(f=>f.name.toLowerCase().includes(query)).slice(0,15);
+  /* v40 - prima cercava solo tra i Nutribees. Ora lo slot e' aperto a tutta la libreria:
+     i piatti della rotazione in cima, il resto sotto. */
+  const tutti = (DB.foodLibrary||[]).filter(f=>f.name.toLowerCase().includes(query));
+  const rot = Object.keys(PIATTI_ROT).map(k=>PIATTI_ROT[k].name.toLowerCase());
+  const lib = tutti.slice().sort((a,b)=>{
+    const ra = rot.indexOf(a.name.toLowerCase()), rb = rot.indexOf(b.name.toLowerCase());
+    if(ra>=0 && rb<0) return -1;
+    if(rb>=0 && ra<0) return 1;
+    return 0;
+  }).slice(0,15);
   return lib.map(f=>`
     <div class="foodlib-item">
       <div><div class="nm">${f.name.replace('Nutribees ','')}</div><div class="mc">${Math.round(f.kcal)}kcal · P${f.pro} C${f.carb} G${f.fat} · ${(f.costo||0).toFixed(2)}€</div></div>
@@ -3088,24 +3042,22 @@ function setStockDispensa(id, val){
 }
 function comprato(){
   const scorte = listaSpesa().filter(v=>spesaSpuntate[v.id]);
-  const freschi = listaFresco().filter(f=>spesaSpuntate[f.id]);
-  if(!scorte.length && !freschi.length){ toast("Spunta almeno una voce"); return; }
+  if(!scorte.length){ toast("Spunta almeno una voce"); return; }
   scorte.forEach(v=>{
     v.stock = (Number(v.stock)||0) + confDaComprare(v) * (Number(v.perConf)||1);
     delete spesaSpuntate[v.id];
   });
-  freschi.forEach(f=>{ f.ultimaSpesa = todayStr(); delete spesaSpuntate[f.id]; });
-  const n = scorte.length + freschi.length;
-  saveDB(); toast(n===1 ? "1 voce rifornita" : n+" voci rifornite"); render();
+  saveDB(); toast(scorte.length===1 ? "1 voce rifornita" : scorte.length+" voci rifornite"); render();
 }
 function rigaDispensa(v){
   const g = giorniAutonomia(v);
   const pct = Math.max(2, Math.min(100, Math.round(g / Math.max(1, v.orizzonte) * 100)));
-  const col = g < SOGLIA_SPESA ? "var(--red-light)" : (g < v.orizzonte*0.5 ? "var(--amber-light)" : "var(--green-light)");
-  const pill = g < SOGLIA_SPESA ? "bad" : (g < v.orizzonte*0.5 ? "warn" : "ok");
+  const sg = sogliaDi(v);
+  const col = g < sg ? "var(--red-light)" : (g < v.orizzonte*0.5 ? "var(--amber-light)" : "var(--green-light)");
+  const pill = g < sg ? "bad" : (g < v.orizzonte*0.5 ? "warn" : "ok");
   return `<div class="disprow">
     <div class="nm"><b>${v.nome}</b>
-      <span>${nFmt(v.stock)} ${Number(v.stock)===1 && v.unitaS ? v.unitaS : v.unita} &middot; ${nFmt(v.consumo)} ${v.unita} al giorno</span>
+      <span>${nFmt(v.stock)} ${Number(v.stock)===1 && v.unitaS ? v.unitaS : v.unita} &middot; ${nFmt(v.consumo)} ${Number(v.consumo)===1 && v.unitaS ? v.unitaS : v.unita} al giorno</span>
       <div class="dispbar"><i style="width:${pct}%;background:${col};"></i></div></div>
     <input class="dispstock" type="number" inputmode="decimal" step="any" min="0" value="${nFmt(v.stock)}"
       onchange="setStockDispensa('${v.id}', this.value)">
@@ -3115,61 +3067,42 @@ function rigaDispensa(v){
 function renderDispensa(app){
   const tutte = (DB.dispensa||[]).slice().sort((a,b)=>giorniAutonomia(a)-giorniAutonomia(b));
   const lista = listaSpesa();
-  const scarse = tutte.filter(v=>giorniAutonomia(v) < SOGLIA_SPESA);
-  const ok = tutte.filter(v=>giorniAutonomia(v) >= SOGLIA_SPESA);
+  const scarse = tutte.filter(v=>giorniAutonomia(v) < sogliaDi(v));
+  const ok = tutte.filter(v=>giorniAutonomia(v) >= sogliaDi(v));
   let html = "";
 
-  const fresco = listaFresco();
-  const tuttoFresco = (DB.fresco||[]).slice().sort((a,b)=>giorniAllaSpesa(a)-giorniAllaSpesa(b));
-  if(lista.length || fresco.length){
+  if(lista.length){
     html += `<div class="card">
       <h2>Lista della spesa</h2>
-      <div style="color:var(--muted);font-size:12px;margin:-4px 0 8px;">Si forma da sola: le scorte entrano sotto ${SOGLIA_SPESA} giorni di autonomia, il fresco ogni 5 giorni.</div>
+      <div style="color:var(--muted);font-size:12px;margin:-4px 0 8px;">Si forma da sola: una voce entra quando le restano meno di ${SOGLIA_SPESA} giorni di autonomia, ${SOGLIA_FRESCO} per i deperibili.</div>
       ${lista.map(v=>`<div class="disprow">
         <button class="spesabox${spesaSpuntate[v.id] ? " on" : ""}" onclick="toggleSpesa('${v.id}')" aria-label="Spunta ${v.nome}"></button>
         <div class="nm"><b>${v.nome}</b>
-          <span>${confDaComprare(v)} ${confDaComprare(v)===1 ? v.conf : v.conf.replace(/^(confezione|busta|barattolo|scatoletta|vascone|litro|sacchetto)/, m=>({confezione:"confezioni",busta:"buste",barattolo:"barattoli",scatoletta:"scatolette",vascone:"vasconi",litro:"litri",sacchetto:"sacchetti"})[m])} &rarr; ${v.orizzonte} giorni</span></div>
-      </div>`).join("")}
-      ${fresco.map(f=>`<div class="disprow">
-        <button class="spesabox${spesaSpuntate[f.id] ? " on" : ""}" onclick="toggleSpesa('${f.id}')" aria-label="Spunta ${f.nome}"></button>
-        <div class="nm"><b>${f.nome}</b>
-          <span>${f.qta} &rarr; ${f.cadenza} giorni${f.ultimaSpesa ? "" : " &middot; mai comprato"}</span></div>
+          <span>${confDaComprare(v)} ${confDaComprare(v)===1 ? v.conf : v.conf.replace(/^(confezione|busta|barattolo|scatoletta|vascone|litro|sacchetto|banana|vaschetta)/, m=>({confezione:"confezioni",busta:"buste",barattolo:"barattoli",scatoletta:"scatolette",vascone:"vasconi",litro:"litri",sacchetto:"sacchetti",banana:"banane",vaschetta:"vaschette"})[m])} &rarr; ${v.orizzonte} giorni</span></div>
       </div>`).join("")}
       <button class="btn primary block" style="margin-top:10px;" onclick="comprato()">Ho comprato le voci spuntate</button>
       <div style="color:var(--muted);font-size:11.5px;margin-top:7px;">Spuntando una voce la scorta sale e la riga esce dalla lista.</div>
     </div>`;
   } else {
     html += `<div class="card"><h2>Lista della spesa</h2>
-      <div class="empty">Niente da comprare: scorte sopra ${SOGLIA_SPESA} giorni e fresco ancora in corso.</div></div>`;
+      <div class="empty">Niente da comprare: ogni voce ha scorta sopra la sua soglia.</div></div>`;
   }
 
   if(scarse.length){
-    html += `<h3 class="section">Finisce entro ${SOGLIA_SPESA} giorni</h3>
+    html += `<h3 class="section">Da comprare presto</h3>
       <div class="card">${scarse.map(rigaDispensa).join("")}</div>`;
   }
   if(ok.length){
     html += `<h3 class="section">Ne hai abbastanza</h3>
       <div class="card">${ok.map(rigaDispensa).join("")}</div>`;
   }
-  if(tuttoFresco.length){
-    html += `<h3 class="section">Fresco &mdash; ogni 5 giorni</h3><div class="card">` +
-      tuttoFresco.map(f=>{
-        const g = giorniAllaSpesa(f);
-        const pill = g <= 0 ? "bad" : (g <= 1 ? "warn" : "ok");
-        const txt = g <= 0 ? "ora" : (g === 1 ? "domani" : "fra " + g + " gg");
-        return `<div class="disprow">
-          <div class="nm"><b>${f.nome}</b>
-            <span>${f.qta}${f.ultimaSpesa ? " &middot; ultima spesa " + niceDate(f.ultimaSpesa) : " &middot; mai comprato"}</span></div>
-          <span class="pill ${pill}" style="min-width:58px;text-align:center;">${txt}</span>
-        </div>`;
-      }).join("") + `</div>`;
-  }
   html += `<div class="card"><h2>Come funziona</h2>
     <div style="font-size:12.5px;color:var(--muted);line-height:1.55;">
       Le scorte scendono da sole quando registri un pasto o cambi le quantita' del piano fisso.
-      Il numero accanto a ogni voce e' modificabile: aprila dispensa, conta e riscrivi quando la realta' si scosta.<br><br>
-      Il fresco non ha contatore: dura pochi giorni e decide la scadenza, non la quantita'. Entra in lista
-      a ritmo fisso, ogni cinque giorni dall'ultima spesa, con gia' scritto quanto prendere.
+      Il numero accanto a ogni voce e' modificabile: apri la dispensa, conta e riscrivi quando la realta' si scosta.<br><br>
+      Una voce entra in lista quando le restano meno di ${SOGLIA_SPESA} giorni di autonomia. I deperibili
+      (tacchino, fiocchi, pomodorini, insalata, kiwi, banane) hanno soglia ${SOGLIA_FRESCO}: si comprano
+      sotto casa e non serve lo stesso preavviso delle scorte.
     </div></div>`;
   app.innerHTML = html;
 }
@@ -3540,25 +3473,6 @@ function renderImpostazioni(app){
     </div>
 
     <div class="card settingsgroup">
-      <h2>Scorte Nutribees</h2>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;">
-        Ogni volta che scegli un piatto Nutribees per pranzo o cena, le scorte scendono di uno in automatico.
-        Quando arriva una nuova consegna, aggiorna qui il numero. L'avviso in Home scatta quando le scorte
-        finiscono prima che una nuova consegna possa arrivare.
-      </div>
-      <div class="row between" style="margin-bottom:12px;">
-        <div style="font-size:13px;">Scorte attuali</div>
-        <span class="pill ${nutribeesAvviso().urgente ? "bad" : "ok"}">${DB.nutribeesStock||0} pasti</span>
-      </div>
-      <div class="grid3">
-        <div class="field"><label class="f">Scorte attuali</label><input type="number" id="nbStock" value="${DB.nutribeesStock||0}"></div>
-        <div class="field"><label class="f">Giorni consegna</label><input type="number" id="nbLead" value="${DB.nutribeesLeadDays||7}"></div>
-        <div class="field"><label class="f">Pasti/giorno</label><input type="number" id="nbRate" value="${DB.nutribeesRatePerDay||2}"></div>
-      </div>
-      <button class="btn primary block" onclick="saveNutribeesSettings()">Salva</button>
-    </div>
-
-    <div class="card settingsgroup">
       <h2>Editor scheda</h2>
       <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">
         Modifica esercizi, serie e target ripetizioni per ogni giorno. Le modifiche si salvano da sole.
@@ -3647,12 +3561,6 @@ function saveProgramStart(){
 function saveWeeklyTarget(){
   DB.weeklyTarget = Number(document.getElementById("weeklyTarget").value)||5;
   saveDB(); toast("Obiettivo salvato"); render();
-}
-function saveNutribeesSettings(){
-  DB.nutribeesStock = Number(document.getElementById("nbStock").value)||0;
-  DB.nutribeesLeadDays = Number(document.getElementById("nbLead").value)||7;
-  DB.nutribeesRatePerDay = Number(document.getElementById("nbRate").value)||2;
-  saveDB(); toast("Scorte Nutribees salvate"); render();
 }
 
 /* ============================= EDITOR SCHEDA ============================= */
