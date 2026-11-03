@@ -348,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v40";
+const APP_VERSION = "v41";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -724,7 +724,7 @@ const DEFAULT_DISPENSA = [
      Ora si contano come tutto il resto, con soglia 2 invece di 3. */
   {id:"tacchino",  nome:"Fesa di tacchino",     unita:"porzioni",  unitaS:"porzione", perConf:1,    conf:"confezione da 150 g", consumo:0.7, orizzonte:5,  soglia:SOGLIA_FRESCO},
   {id:"patate",    nome:"Patate lesse pronte",  unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"busta da 300 g",      consumo:0.7, orizzonte:10, soglia:SOGLIA_FRESCO},
-  {id:"fiocchi",   nome:"Fiocchi di latte",     unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"confezione da 2 vaschette da 175 g", consumo:0.6, orizzonte:10, soglia:SOGLIA_FRESCO},
+  {id:"fiocchi",   nome:"Fiocchi di latte",     unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"confezione da 2 vaschette da 175 g", consumo:0.6, orizzonte:5,  soglia:SOGLIA_FRESCO},
   {id:"pomodorini",nome:"Pomodorini",           unita:"g",          perConf:500,  conf:"vaschetta da 500 g", consumo:165, orizzonte:5, soglia:SOGLIA_FRESCO},
   {id:"insalata",  nome:"Insalata in busta",    unita:"g",          perConf:150,  conf:"busta da 150 g",     consumo:30,  orizzonte:5, soglia:SOGLIA_FRESCO},
   {id:"kiwi",      nome:"Kiwi gialli",          unita:"kiwi",      unitaS:"kiwi",     perConf:1,    conf:"kiwi",                consumo:2,   orizzonte:5, soglia:SOGLIA_FRESCO},
