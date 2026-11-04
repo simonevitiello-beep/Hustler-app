@@ -348,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v42";
+const APP_VERSION = "v43";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -685,6 +685,7 @@ const DEFAULT_PIANO_FISSO = {
     {id:"uova3", l:"Uova", unit:"uovo", kcalU:70, proU:7, carbU:0, fatU:5, defaultQty:3, costoU:0.33},
     {id:"banana", l:"Banana fresca", unit:"banana", kcalU:90, proU:1, carbU:23, fatU:0, defaultQty:1, costoU:0.18},
     {id:"avena-colazione", l:"Avena overnight (100g + 150-200ml latte)", unit:"porzione", kcalU:432, proU:18.2, carbU:69.5, fatU:7.2, defaultQty:1, costoU:0.50},
+    {id:"omega3", l:"Omega 3", unit:"capsula", kcalU:9, proU:0, carbU:0, fatU:1, defaultQty:2, costoU:0.10},
   ],
   "spuntino-am": [
     {id:"whey-acqua", l:"Yogurt intero 200 g + 10 g mandorle + creatina", unit:"porzione", kcalU:206, proU:9.5, carbU:11.5, fatU:13.4, defaultQty:1, costoU:0.95},
@@ -816,6 +817,7 @@ reconcilePianoFisso();
 migrateFissoOrfani();
 migraPiano2200();
 migraYogurt();
+migraOmega3();
 migrateExdbV3();
 reconcileExdbRir();
 migraDispensa();
@@ -1126,6 +1128,21 @@ function migraYogurt(){
     if(Number(DB.targets.carb) === 227) DB.targets.carb = 240;
   }
   DB.pianoVersion = YOGURT_VERSION;
+  saveDB();
+}
+/* 4 novembre 2026 — omega 3 (Yamamoto, 2 capsule al giorno).
+   Per capsula: 9 kcal e 1 g di grassi, cioe' 1 g di olio di pesce. Valori per capsula e
+   non per dose, cosi' se la dose cambia basta cambiare la quantita' del giorno.
+   Sta in colazione perche' li' ci sono i grassi delle uova: gli omega 3 a stomaco vuoto
+   si assorbono molto meno. Due capsule portano i grassi della giornata da 68,7 a 70,7,
+   cioe' esattamente a target. */
+function migraOmega3(){
+  const lista = (DB.pianoFisso && DB.pianoFisso["colazione"]) || [];
+  if(!DB.pianoFisso || !DB.pianoFisso["colazione"]) return;
+  if(lista.some(it => it && it.id === "omega3")) return;
+  const def = DEFAULT_PIANO_FISSO["colazione"].find(x => x.id === "omega3");
+  if(!def) return;
+  lista.push(JSON.parse(JSON.stringify(def)));
   saveDB();
 }
 function migrateExdbV3(){
