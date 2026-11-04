@@ -348,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v43";
+const APP_VERSION = "v44";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -685,12 +685,12 @@ const DEFAULT_PIANO_FISSO = {
     {id:"uova3", l:"Uova", unit:"uovo", kcalU:70, proU:7, carbU:0, fatU:5, defaultQty:3, costoU:0.33},
     {id:"banana", l:"Banana fresca", unit:"banana", kcalU:90, proU:1, carbU:23, fatU:0, defaultQty:1, costoU:0.18},
     {id:"avena-colazione", l:"Avena overnight (100g + 150-200ml latte)", unit:"porzione", kcalU:432, proU:18.2, carbU:69.5, fatU:7.2, defaultQty:1, costoU:0.50},
-    {id:"omega3", l:"Omega 3", unit:"capsula", kcalU:9, proU:0, carbU:0, fatU:1, defaultQty:2, costoU:0.10},
   ],
   "spuntino-am": [
-    {id:"whey-acqua", l:"Yogurt intero 200 g + 10 g mandorle + creatina", unit:"porzione", kcalU:206, proU:9.5, carbU:11.5, fatU:13.4, defaultQty:1, costoU:0.95},
   ],
   "spuntino-pm": [
+    {id:"whey-acqua", l:"Yogurt intero 200 g + 10 g mandorle + creatina", unit:"porzione", kcalU:206, proU:9.5, carbU:11.5, fatU:13.4, defaultQty:1, costoU:0.95},
+    {id:"omega3", l:"Omega 3", unit:"capsula", kcalU:9, proU:0, carbU:0, fatU:1, defaultQty:2, costoU:0.10},
     {id:"whey-latte", l:"Whey (30g) in 200ml latte", unit:"porzione", kcalU:178, proU:24, carbU:18.7, fatU:0.7, defaultQty:1, costoU:0.72},
   ],
   "spuntino-sera": [
@@ -817,6 +817,8 @@ reconcilePianoFisso();
 migrateFissoOrfani();
 migraPiano2200();
 migraYogurt();
+riparaStoricoWhey();
+migraYogurtPomeriggio();
 migraOmega3();
 migrateExdbV3();
 reconcileExdbRir();
@@ -1133,16 +1135,66 @@ function migraYogurt(){
 /* 4 novembre 2026 — omega 3 (Yamamoto, 2 capsule al giorno).
    Per capsula: 9 kcal e 1 g di grassi, cioe' 1 g di olio di pesce. Valori per capsula e
    non per dose, cosi' se la dose cambia basta cambiare la quantita' del giorno.
-   Sta in colazione perche' li' ci sono i grassi delle uova: gli omega 3 a stomaco vuoto
-   si assorbono molto meno. Due capsule portano i grassi della giornata da 68,7 a 70,7,
-   cioe' esattamente a target. */
+   Sta nello spuntino del pomeriggio insieme allo yogurt, dove ci sono 13,4 g di grassi:
+   gli omega 3 a stomaco vuoto si assorbono molto meno. Due capsule portano i grassi
+   della giornata da 68,7 a 70,7, cioe' esattamente a target. */
 function migraOmega3(){
-  const lista = (DB.pianoFisso && DB.pianoFisso["colazione"]) || [];
-  if(!DB.pianoFisso || !DB.pianoFisso["colazione"]) return;
-  if(lista.some(it => it && it.id === "omega3")) return;
-  const def = DEFAULT_PIANO_FISSO["colazione"].find(x => x.id === "omega3");
+  const SLOT = "spuntino-pm";
+  if(!DB.pianoFisso || !DB.pianoFisso[SLOT]) return;
+  // se c'e' gia' in un qualunque slot (p.es. messo in colazione da una versione
+  // precedente) non si duplica: a spostarlo ci pensa migraYogurtPomeriggio
+  const esiste = Object.keys(DB.pianoFisso).some(sl =>
+    (DB.pianoFisso[sl]||[]).some(it => it && it.id === "omega3"));
+  if(esiste) return;
+  const def = (DEFAULT_PIANO_FISSO[SLOT]||[]).find(x => x.id === "omega3");
   if(!def) return;
-  lista.push(JSON.parse(JSON.stringify(def)));
+  // subito sotto lo yogurt, non in fondo: si prendono insieme
+  const lista = DB.pianoFisso[SLOT];
+  const i = lista.findIndex(x => x && x.id === "whey-acqua");
+  lista.splice(i < 0 ? lista.length : i + 1, 0, JSON.parse(JSON.stringify(def)));
+  saveDB();
+}
+/* 4 novembre 2026 — RIPARAZIONE, gira prima di qualsiasi spostamento di slot.
+   33 giornate fra il 23/7 e il 2/9 hanno "whey-acqua" nel log senza valori congelati:
+   lo snapshot per data e' entrato dopo. Quei giorni leggono i valori dalla voce corrente,
+   quindi quando la v42 ha trasformato la voce in yogurt hanno perso 23,5 g di proteine
+   ciascuna, e spostandola di slot perderebbero anche le 207 kcal (resolveFissoItem cerca
+   nello slot). Qui congelo i valori del whey su quelle date, cosi' lo storico resta
+   quello che era stato mangiato davvero. */
+function riparaStoricoWhey(){
+  if(DB.storicoWheyRiparato) return;
+  const WHEY = {l:"Whey iso-fuji (30g) in latte + creatina", unit:"porzione",
+                kcalU:207, proU:33, carbU:10.5, fatU:3.5, costoU:1.39};
+  if(!DB.pianoFissoSnap) DB.pianoFissoSnap = {};
+  Object.keys(DB.pianoFissoLog||{}).forEach(d=>{
+    const slot = (DB.pianoFissoLog[d]||{})["spuntino-am"];
+    if(!slot || !(Number(slot["whey-acqua"])>0)) return;
+    const bag = DB.pianoFissoSnap[d] && DB.pianoFissoSnap[d]["spuntino-am"];
+    if(bag && bag["whey-acqua"]) return;   // gia' congelato: non si tocca
+    if(!DB.pianoFissoSnap[d]) DB.pianoFissoSnap[d] = {};
+    if(!DB.pianoFissoSnap[d]["spuntino-am"]) DB.pianoFissoSnap[d]["spuntino-am"] = {};
+    DB.pianoFissoSnap[d]["spuntino-am"]["whey-acqua"] = JSON.parse(JSON.stringify(WHEY));
+  });
+  DB.storicoWheyRiparato = true;
+  saveDB();
+}
+/* Lo yogurt si mangia il pomeriggio, non la mattina: la voce e gli omega 3 seguono.
+   Lo slot del mattino resta vuoto di proposito. I totali della giornata non cambiano,
+   cambia solo come sono distribuiti. */
+function migraYogurtPomeriggio(){
+  if(DB.yogurtPomeriggio) return;
+  if(!DB.pianoFisso || !DB.pianoFisso["spuntino-pm"]) return;
+  const pm = DB.pianoFisso["spuntino-pm"];
+  const sposta = (slot, id) => {
+    const lista = DB.pianoFisso[slot] || [];
+    const i = lista.findIndex(x => x && x.id === id);
+    return i < 0 ? null : lista.splice(i, 1)[0];
+  };
+  const omega = sposta("colazione", "omega3") || sposta("spuntino-am", "omega3");
+  const yog = sposta("spuntino-am", "whey-acqua");
+  if(omega && !pm.some(x=>x && x.id==="omega3")) pm.unshift(omega);
+  if(yog && !pm.some(x=>x && x.id==="whey-acqua")) pm.unshift(yog);
+  DB.yogurtPomeriggio = true;
   saveDB();
 }
 function migrateExdbV3(){
