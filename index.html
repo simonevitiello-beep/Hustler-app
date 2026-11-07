@@ -348,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v47";
+const APP_VERSION = "v48";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -727,7 +727,6 @@ const DEFAULT_DISPENSA = [
   {id:"patate",    nome:"Patate lesse pronte",  unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"busta da 300 g",      consumo:0.7, orizzonte:10, soglia:SOGLIA_FRESCO},
   {id:"fiocchi",   nome:"Fiocchi di latte",     unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"confezione da 2 vaschette da 175 g", consumo:0.6, orizzonte:5,  soglia:SOGLIA_FRESCO},
   {id:"pomodorini",nome:"Pomodorini",           unita:"g",          perConf:500,  conf:"vaschetta da 500 g", consumo:165, orizzonte:5, soglia:SOGLIA_FRESCO},
-  {id:"insalata",  nome:"Insalata in busta",    unita:"g",          perConf:150,  conf:"busta da 150 g",     consumo:30,  orizzonte:5, soglia:SOGLIA_FRESCO},
   {id:"kiwi",      nome:"Kiwi gialli",          unita:"kiwi",      unitaS:"kiwi",     perConf:1,    conf:"kiwi",                consumo:2,   orizzonte:5, soglia:SOGLIA_FRESCO},
   {id:"banane",    nome:"Banane",               unita:"banane",    unitaS:"banana",   perConf:1,    conf:"banana",              consumo:1,   orizzonte:5, soglia:SOGLIA_FRESCO}
 ];
@@ -735,7 +734,7 @@ const DEFAULT_DISPENSA = [
 const DISTINTA_PASTI = {
   "tonno e ceci":             {tonno:1, ceci:1, pomodorini:150},
   "tacchino e patate":        {tacchino:1, patate:1, fagiolini:1},
-  "fiocchi di latte e farro": {fiocchi:1, farro:1, pomodorini:100, insalata:50}
+  "fiocchi di latte e farro": {fiocchi:1, farro:1, pomodorini:100}
 };
 // Quanto consuma UNA unita' di una voce del piano fisso.
 const DISTINTA_FISSO = {
@@ -765,7 +764,7 @@ const DISTINTA_FISSO_NOME = [
 const PIATTI_ROT = {
   tonno:    {name:"Tonno e ceci",             kcal:290, pro:32, carb:22, fat:8,  costo:3.15},
   tacchino: {name:"Tacchino e patate",        kcal:402, pro:38, carb:32, fat:13, costo:4.70},
-  fiocchi:  {name:"Fiocchi di latte e farro", kcal:418, pro:28, carb:46, fat:13, costo:3.78}
+  fiocchi:  {name:"Fiocchi di latte e farro", kcal:409, pro:27, carb:45, fat:13, costo:3.38}
 };
 /* v47 - riscritta bilanciando anche PER SLOT, non solo sul totale.
    La versione precedente aveva i totali giusti (7/7/6) ma a cena metteva tacchino
@@ -832,6 +831,7 @@ migraOmega3();
 migrateExdbV3();
 reconcileExdbRir();
 migraDispensa();
+migraViaInsalata();
 migraViaFresco();
 migraPiattiRotazione();
 reconcileExdbShape();
@@ -1147,6 +1147,15 @@ function migraYogurt(){
    Sta nello spuntino del pomeriggio insieme allo yogurt, dove ci sono 13,4 g di grassi:
    gli omega 3 a stomaco vuoto si assorbono molto meno. Due capsule portano i grassi
    della giornata da 68,7 a 70,7, cioe' esattamente a target. */
+/* 7 novembre 2026 — l'insalata esce dal piano. Tolta anche dalle dispense gia' salvate,
+   altrimenti resterebbe a contare e a comparire in lista senza che serva piu'. */
+function migraViaInsalata(){
+  if(!Array.isArray(DB.dispensa)) return;
+  const i = DB.dispensa.findIndex(v => v && v.id === "insalata");
+  if(i < 0) return;
+  DB.dispensa.splice(i, 1);
+  saveDB();
+}
 function migraOmega3(){
   const SLOT = "spuntino-pm";
   if(!DB.pianoFisso || !DB.pianoFisso[SLOT]) return;
@@ -3145,6 +3154,18 @@ function markUndone(){
 /* ============================= TAB: PROGRESSI ============================= */
 /* --------------------- DISPENSA: schermata --------------------- */
 let spesaSpuntate = {};
+/* v48 - quante confezioni stai davvero comprando. Parte dal suggerimento, ma se in offerta
+   ne prendi di piu' lo scrivi qui e il tasto somma quelle allo stock che hai gia'.
+   Prima l'unico modo era riscrivere il numero nella riga della dispensa, che pero'
+   SOSTITUISCE: chi aveva 1 porzione e ne comprava 5 si ritrovava con 5 invece di 6. */
+let spesaQta = {};
+function setSpesaQta(id, val){
+  const n = Math.max(0, Number(val)||0);
+  spesaQta[id] = n;
+}
+function qtaSpesa(v){
+  return spesaQta[v.id] !== undefined ? spesaQta[v.id] : confDaComprare(v);
+}
 function toggleSpesa(id){ spesaSpuntate[id] = !spesaSpuntate[id]; render(); }
 function setStockDispensa(id, val){
   const v = voceDispensa(id); if(!v) return;
@@ -3155,8 +3176,10 @@ function comprato(){
   const scorte = listaSpesa().filter(v=>spesaSpuntate[v.id]);
   if(!scorte.length){ toast("Spunta almeno una voce"); return; }
   scorte.forEach(v=>{
-    v.stock = (Number(v.stock)||0) + confDaComprare(v) * (Number(v.perConf)||1);
+    // si SOMMA sempre a quello che c'e' gia': comprare non azzera la dispensa
+    v.stock = Math.round(((Number(v.stock)||0) + qtaSpesa(v) * (Number(v.perConf)||1)) * 100) / 100;
     delete spesaSpuntate[v.id];
+    delete spesaQta[v.id];
   });
   saveDB(); toast(scorte.length===1 ? "1 voce rifornita" : scorte.length+" voci rifornite"); render();
 }
@@ -3186,13 +3209,18 @@ function renderDispensa(app){
     html += `<div class="card">
       <h2>Lista della spesa</h2>
       <div style="color:var(--muted);font-size:12px;margin:-4px 0 8px;">Si forma da sola: una voce entra quando le restano meno di ${SOGLIA_SPESA} giorni di autonomia, ${SOGLIA_FRESCO} per i deperibili.</div>
-      ${lista.map(v=>`<div class="disprow">
+      ${lista.map(v=>{
+        const q = qtaSpesa(v);
+        // il numero sta nell'input, quindi qui basta il nome della confezione al singolare
+        return `<div class="disprow">
         <button class="spesabox${spesaSpuntate[v.id] ? " on" : ""}" onclick="toggleSpesa('${v.id}')" aria-label="Spunta ${v.nome}"></button>
         <div class="nm"><b>${v.nome}</b>
-          <span>${confDaComprare(v)} ${confDaComprare(v)===1 ? v.conf : v.conf.replace(/^(confezione|busta|barattolo|scatoletta|vascone|litro|sacchetto|banana|vaschetta)/, m=>({confezione:"confezioni",busta:"buste",barattolo:"barattoli",scatoletta:"scatolette",vascone:"vasconi",litro:"litri",sacchetto:"sacchetti",banana:"banane",vaschetta:"vaschette"})[m])} &rarr; ${v.orizzonte} giorni</span></div>
-      </div>`).join("")}
+          <span>&times; ${v.conf}<br>in casa ${nFmt(v.stock)} ${Number(v.stock)===1 && v.unitaS ? v.unitaS : v.unita} &middot; copre ${v.orizzonte} giorni</span></div>
+        <input class="dispstock" type="number" inputmode="decimal" step="any" min="0" value="${nFmt(q)}"
+          aria-label="Quante ne compri di ${v.nome}" onchange="setSpesaQta('${v.id}', this.value)">
+      </div>`;}).join("")}
       <button class="btn primary block" style="margin-top:10px;" onclick="comprato()">Ho comprato le voci spuntate</button>
-      <div style="color:var(--muted);font-size:11.5px;margin-top:7px;">Spuntando una voce la scorta sale e la riga esce dalla lista.</div>
+      <div style="color:var(--muted);font-size:11.5px;margin-top:7px;">Il numero a destra \u00e8 <b>quante confezioni prendi</b>: correggilo se ne compri di pi\u00f9. Confermando, le porzioni si <b>sommano</b> a quelle che hai gi\u00e0.</div>
     </div>`;
   } else {
     html += `<div class="card"><h2>Lista della spesa</h2>
@@ -3210,9 +3238,11 @@ function renderDispensa(app){
   html += `<div class="card"><h2>Come funziona</h2>
     <div style="font-size:12.5px;color:var(--muted);line-height:1.55;">
       Le scorte scendono da sole quando registri un pasto o cambi le quantita' del piano fisso.
-      Il numero accanto a ogni voce e' modificabile: apri la dispensa, conta e riscrivi quando la realta' si scosta.<br><br>
+      <b>Due numeri, due significati.</b> Nella lista della spesa scrivi <b>quante confezioni compri</b>,
+      e confermando si sommano a quello che hai. Nelle righe qui sotto scrivi invece <b>quante ne hai
+      in casa adesso</b>: quel campo sostituisce, serve a riallineare il conto quando hai contato male.<br><br>
       Una voce entra in lista quando le restano meno di ${SOGLIA_SPESA} giorni di autonomia. I deperibili
-      (tacchino, fiocchi, pomodorini, insalata, kiwi, banane) hanno soglia ${SOGLIA_FRESCO}: si comprano
+      (tacchino, fiocchi, pomodorini, kiwi, banane) hanno soglia ${SOGLIA_FRESCO}: si comprano
       sotto casa e non serve lo stesso preavviso delle scorte.
     </div></div>`;
   app.innerHTML = html;
