@@ -348,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v48";
+const APP_VERSION = "v49";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -712,8 +712,8 @@ const SOGLIA_FRESCO = 2;       // deperibili: si comprano sotto casa, due giorni
 const DEFAULT_DISPENSA = [
   {id:"uova",      nome:"Uova",                 unita:"uova",      unitaS:"uovo",       perConf:10,   conf:"confezione da 10",    consumo:3,   orizzonte:10},
   {id:"tonno",     nome:"Tonno al naturale",    unita:"scatolette",unitaS:"scatoletta", perConf:1,    conf:"scatoletta da 160 g", consumo:0.7, orizzonte:10},
-  {id:"ceci",      nome:"Ceci lessati",         unita:"porzioni",  unitaS:"porzione",   perConf:2,    conf:"barattolo da 400 g",  consumo:0.7, orizzonte:10},
-  {id:"fagiolini", nome:"Fagiolini lessati",    unita:"porzioni",  unitaS:"porzione",   perConf:2,    conf:"barattolo da 400 g",  consumo:0.7, orizzonte:10},
+  {id:"ceci",      nome:"Ceci lessati",         unita:"porzioni",  unitaS:"porzione",   perConf:2,    conf:"barattolo da 400 g",  consumo:0.7, orizzonte:30},
+  {id:"fagiolini", nome:"Fagiolini lessati",    unita:"porzioni",  unitaS:"porzione",   perConf:2,    conf:"barattolo da 400 g",  consumo:0.7, orizzonte:30},
   {id:"farro",     nome:"Farro precotto",       unita:"buste",     unitaS:"busta",      perConf:1,    conf:"busta da 125 g",      consumo:0.6, orizzonte:10},
   {id:"yogurt",    nome:"Yogurt intero",        unita:"g",          perConf:1000, conf:"vaschetta da 1 kg",   consumo:200, orizzonte:10},
   {id:"segale",    nome:"Pane di segale",       unita:"g",          perConf:500,  conf:"confezione da 500 g", consumo:50,  orizzonte:10},
@@ -724,7 +724,7 @@ const DEFAULT_DISPENSA = [
      contatore: reggeva finche' i pasti li sceglieva Simone, non piu' con la rotazione.
      Ora si contano come tutto il resto, con soglia 2 invece di 3. */
   {id:"tacchino",  nome:"Fesa di tacchino",     unita:"porzioni",  unitaS:"porzione", perConf:1,    conf:"confezione da 150 g", consumo:0.7, orizzonte:5,  soglia:SOGLIA_FRESCO},
-  {id:"patate",    nome:"Patate lesse pronte",  unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"busta da 300 g",      consumo:0.7, orizzonte:10, soglia:SOGLIA_FRESCO},
+  {id:"patate",    nome:"Patate lesse pronte",  unita:"porzioni",  unitaS:"porzione", perConf:4,    conf:"busta da 500 g",      consumo:0.7, orizzonte:10, soglia:SOGLIA_FRESCO},
   {id:"fiocchi",   nome:"Fiocchi di latte",     unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"confezione da 2 vaschette da 175 g", consumo:0.6, orizzonte:5,  soglia:SOGLIA_FRESCO},
   {id:"pomodorini",nome:"Pomodorini",           unita:"g",          perConf:500,  conf:"vaschetta da 500 g", consumo:165, orizzonte:5, soglia:SOGLIA_FRESCO},
   {id:"kiwi",      nome:"Kiwi gialli",          unita:"kiwi",      unitaS:"kiwi",     perConf:1,    conf:"kiwi",                consumo:2,   orizzonte:5, soglia:SOGLIA_FRESCO},
@@ -763,7 +763,7 @@ const DISTINTA_FISSO_NOME = [
    spesa copre la sua finestra senza avanzi. */
 const PIATTI_ROT = {
   tonno:    {name:"Tonno e ceci",             kcal:290, pro:32, carb:22, fat:8,  costo:3.15},
-  tacchino: {name:"Tacchino e patate",        kcal:402, pro:38, carb:32, fat:13, costo:4.70},
+  tacchino: {name:"Tacchino e patate",        kcal:382, pro:38, carb:28, fat:13, costo:4.45},
   fiocchi:  {name:"Fiocchi di latte e farro", kcal:409, pro:27, carb:45, fat:13, costo:3.38}
 };
 /* v47 - riscritta bilanciando anche PER SLOT, non solo sul totale.
