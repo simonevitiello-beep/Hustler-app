@@ -348,7 +348,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v49";
+const APP_VERSION = "v50";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -550,9 +550,9 @@ const DEFAULT_EXDB = {
   ]},
   4: {label:"Giorno 4 \u2014 Petto B + Schiena B + Laterali", ex:[
     {k:"panca-inclinata-bil", l:"Supine Press", sets:3, repMin:8, repMax:10, rir:[2,1,1], warm:2, rec:180, step:5},
-    {k:"croci-cavi", l:"Croci ai cavi seduto", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:5},
-    {k:"lat-stretta", l:"Lat machine presa a V", sets:3, repMin:10, repMax:12, rir:[2,1,1], warm:1, rec:120, step:5},
-    {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:15, rir:[1,0], warm:1, rec:90, step:5},
+    {k:"croci-cavi", l:"Croci ai cavi seduto", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2.3},
+    {k:"lat-stretta", l:"Lat machine presa a V", sets:3, repMin:10, repMax:15, rir:[2,1,1], warm:1, rec:120, step:7},
+    {k:"pulley-basso", l:"Pulley basso (seal row)", sets:2, repMin:12, repMax:18, rir:[1,0], warm:1, rec:90, step:7},
     {k:"alzate-laterali", l:"Alzate laterali manubri", sets:3, repMin:12, repMax:15, rir:[1,1,0], warm:1, rec:90, step:2},
   ]},
   5: {label:"Giorno 5 \u2014 Posteriori + Braccia + Polpacci", ex:[
@@ -832,6 +832,7 @@ migrateExdbV3();
 reconcileExdbRir();
 migraDispensa();
 migraViaInsalata();
+migraProgressioneG4();
 migraViaFresco();
 migraPiattiRotazione();
 reconcileExdbShape();
@@ -1149,6 +1150,35 @@ function migraYogurt(){
    della giornata da 68,7 a 70,7, cioe' esattamente a target. */
 /* 7 novembre 2026 — l'insalata esce dal piano. Tolta anche dalle dispense gia' salvate,
    altrimenti resterebbe a contare e a comparire in lista senza che serva piu'. */
+/* 8 novembre 2026 — progressione del G4.
+   Tre esercizi su cinque erano fermi da quattro sedute con carico E ripetizioni identici,
+   il peggior dato della scheda. La causa non e' il recupero (le distanze fra stimoli sono
+   3-4 giorni e il volume e' 13 serie a settimana per petto e schiena): e' che il G4 chiedeva
+   salti di carico sproporzionati.
+     croci ai cavi   step 5 kg su 9,1 kg di carico  = +55%, matematicamente impossibile
+     lat stretta     piastre da 7 kg su 45 kg       = +15% con range 10-12, troppo stretto
+     pulley basso    stesse piastre                 = +15% con range 12-15
+   Lo step si allinea a quello che le macchine fanno davvero, e i range si allargano per dare
+   spazio ad accumulare ripetizioni prima del salto. E' quello che Simone ha gia' fatto da solo
+   l'8/11: 16-17 reps sul pulley, poi 52 kg. */
+function migraProgressioneG4(){
+  if(DB.progressioneG4) return;
+  const g4 = DB.exdb && DB.exdb["4"];
+  if(!g4 || !Array.isArray(g4.ex)){ return; }
+  const tocca = (k, campi) => {
+    const e = g4.ex.find(x => x && x.k === k);
+    if(!e) return;
+    Object.keys(campi).forEach(c=>{
+      // si cambia solo se e' ancora il valore vecchio: una modifica a mano non si sovrascrive
+      if(e[c] === campi[c].da) e[c] = campi[c].a;
+    });
+  };
+  tocca("croci-cavi",   {step:{da:5, a:2.3}});
+  tocca("lat-stretta",  {repMax:{da:12, a:15}, step:{da:5, a:7}});
+  tocca("pulley-basso", {repMax:{da:15, a:18}, step:{da:5, a:7}});
+  DB.progressioneG4 = true;
+  saveDB();
+}
 function migraViaInsalata(){
   if(!Array.isArray(DB.dispensa)) return;
   const i = DB.dispensa.findIndex(v => v && v.id === "insalata");
