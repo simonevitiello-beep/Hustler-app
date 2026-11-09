@@ -262,6 +262,7 @@
   .rot-macro{font-size:11.5px;color:var(--muted);margin-top:3px;}
   .rot-nota{font-size:11.5px;color:#FBBF24;margin-top:4px;line-height:1.35;}
   .rot-riga .btn{flex:0 0 auto;}
+  .altbtn{margin-top:6px;font-size:11px;padding:5px 9px;}
   .rot-domani{font-size:12px;color:var(--muted);margin-top:4px;padding-top:9px;
     border-top:1px solid var(--border);line-height:1.45;}
   .rot-domani b{color:#C6C6CC;font-weight:600;}
@@ -348,7 +349,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v50";
+const APP_VERSION = "v51";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -728,6 +729,9 @@ const DEFAULT_DISPENSA = [
   {id:"fiocchi",   nome:"Fiocchi di latte",     unita:"porzioni",  unitaS:"porzione", perConf:2,    conf:"confezione da 2 vaschette da 175 g", consumo:0.6, orizzonte:5,  soglia:SOGLIA_FRESCO},
   {id:"pomodorini",nome:"Pomodorini",           unita:"g",          perConf:500,  conf:"vaschetta da 500 g", consumo:165, orizzonte:5, soglia:SOGLIA_FRESCO},
   {id:"kiwi",      nome:"Kiwi gialli",          unita:"kiwi",      unitaS:"kiwi",     perConf:1,    conf:"kiwi",                consumo:2,   orizzonte:5, soglia:SOGLIA_FRESCO},
+  /* alternativa ai kiwi nello stesso posto del piano: consumo 0 = spenta, si accende
+     dalla lista della spesa quando Simone compra mele invece di kiwi */
+  {id:"mela",      nome:"Mele",                 unita:"mele",      unitaS:"mela",     perConf:1,    conf:"mela",                consumo:0,   orizzonte:5, soglia:SOGLIA_FRESCO},
   {id:"banane",    nome:"Banane",               unita:"banane",    unitaS:"banana",   perConf:1,    conf:"banana",              consumo:1,   orizzonte:5, soglia:SOGLIA_FRESCO}
 ];
 // Quanto consuma un piatto della libreria. Chiave = nome in minuscolo.
@@ -747,8 +751,49 @@ const DISTINTA_FISSO = {
   "custom-2sc5rbvx": {kiwi:1}
 };
 // Voci del piano fisso riconosciute dal nome (lo yogurt nasce quando finisce il whey).
+/* --------------------- ALTERNATIVE NELLA LISTA DELLA SPESA ---------------------
+   Alimenti che occupano lo stesso posto nel piano fisso: al supermercato ne compri uno
+   O l'altro, e la lista deve seguire quello che mangi davvero. Sostituire sposta il
+   consumo da una voce all'altra e aggiorna il piano fisso, senza mai togliere niente:
+   le voci restano tutte, cambia solo la quantita' standard. Lo storico non si tocca. */
+const ALTERNATIVE = {
+  kiwi: {nome:"Kiwi", slot:"spuntino-pm", match:"kiwi", qta:2, consumo:2,
+         unit:"kiwi", kcalU:45,  proU:0.8, carbU:10.5, fatU:0.4, costoU:0.25, alt:["mela"]},
+  mela: {nome:"Mela", slot:"spuntino-pm", match:"mela", qta:1, consumo:1,
+         unit:"mela", kcalU:110, proU:0,   carbU:28,   fatU:0,   costoU:0.35, alt:["kiwi"]}
+};
+function voceFissoPerNome(slot, match){
+  return (DB.pianoFisso && DB.pianoFisso[slot] || [])
+    .find(it => it && String(it.l||"").toLowerCase().indexOf(match) >= 0) || null;
+}
+function sostituisciAlimento(daId, aId){
+  const da = voceDispensa(daId), a = voceDispensa(aId);
+  const iDa = ALTERNATIVE[daId], iA = ALTERNATIVE[aId];
+  if(!da || !a || !iDa || !iA) return;
+  // dispensa: il consumo passa da una voce all'altra, lo stock di ciascuna resta suo
+  da.consumo = 0;
+  a.consumo = iA.consumo;
+  // piano fisso: spengo la vecchia (quantita' 0, NON la tolgo) e accendo la nuova
+  const vDa = voceFissoPerNome(iDa.slot, iDa.match);
+  if(vDa) vDa.defaultQty = 0;
+  let vA = voceFissoPerNome(iA.slot, iA.match);
+  if(vA){
+    vA.defaultQty = iA.qta;
+  } else if(DB.pianoFisso && DB.pianoFisso[iA.slot]){
+    DB.pianoFisso[iA.slot].push({
+      id: "alt-" + aId, l: iA.nome, unit: iA.unit, kcalU: iA.kcalU, proU: iA.proU,
+      carbU: iA.carbU, fatU: iA.fatU, defaultQty: iA.qta, costoU: iA.costoU, customized: true
+    });
+  }
+  delete spesaQta[daId];
+  saveDB();
+  toast(iA.nome + " al posto di " + iDa.nome);
+  render();
+}
 const DISTINTA_FISSO_NOME = [
-  {match:"yogurt", usa:{yogurt:200, mandorle:10}}
+  {match:"yogurt", usa:{yogurt:200, mandorle:10}},
+  {match:"mela",   usa:{mela:1}},
+  {match:"kiwi",   usa:{kiwi:1}}
 ];
 
 
@@ -832,6 +877,7 @@ migrateExdbV3();
 reconcileExdbRir();
 migraDispensa();
 migraViaInsalata();
+migraMela();
 migraProgressioneG4();
 migraViaFresco();
 migraPiattiRotazione();
@@ -1161,6 +1207,18 @@ function migraYogurt(){
    Lo step si allinea a quello che le macchine fanno davvero, e i range si allargano per dare
    spazio ad accumulare ripetizioni prima del salto. E' quello che Simone ha gia' fatto da solo
    l'8/11: 16-17 reps sul pulley, poi 52 kg. */
+/* 9 novembre 2026 — alternative in lista. La voce "mela" entra in dispensa spenta
+   (consumo 0): si accende solo se Simone compra mele al posto dei kiwi. */
+function migraMela(){
+  if(!Array.isArray(DB.dispensa)) return;
+  if(DB.dispensa.some(v => v && v.id === "mela")) return;
+  const def = DEFAULT_DISPENSA.find(v => v.id === "mela");
+  if(!def) return;
+  const i = DB.dispensa.findIndex(v => v && v.id === "kiwi");
+  const nuova = Object.assign({stock:0}, def);
+  if(i >= 0) DB.dispensa.splice(i + 1, 0, nuova); else DB.dispensa.push(nuova);
+  saveDB();
+}
 function migraProgressioneG4(){
   if(DB.progressioneG4) return;
   const g4 = DB.exdb && DB.exdb["4"];
@@ -3245,7 +3303,8 @@ function renderDispensa(app){
         return `<div class="disprow">
         <button class="spesabox${spesaSpuntate[v.id] ? " on" : ""}" onclick="toggleSpesa('${v.id}')" aria-label="Spunta ${v.nome}"></button>
         <div class="nm"><b>${v.nome}</b>
-          <span>&times; ${v.conf}<br>in casa ${nFmt(v.stock)} ${Number(v.stock)===1 && v.unitaS ? v.unitaS : v.unita} &middot; copre ${v.orizzonte} giorni</span></div>
+          <span>&times; ${v.conf}<br>in casa ${nFmt(v.stock)} ${Number(v.stock)===1 && v.unitaS ? v.unitaS : v.unita} &middot; copre ${v.orizzonte} giorni</span>
+          ${(ALTERNATIVE[v.id] ? ALTERNATIVE[v.id].alt : []).map(x=>`<button class="btn small altbtn" onclick="sostituisciAlimento('${v.id}','${x}')">&#8644; compro ${ALTERNATIVE[x].nome.toLowerCase()}</button>`).join("")}</div>
         <input class="dispstock" type="number" inputmode="decimal" step="any" min="0" value="${nFmt(q)}"
           aria-label="Quante ne compri di ${v.nome}" onchange="setSpesaQta('${v.id}', this.value)">
       </div>`;}).join("")}
