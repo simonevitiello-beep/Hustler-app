@@ -349,7 +349,7 @@ function applicaAggiornamento(){
 }
 
 /* ============================= DATA LAYER ============================= */
-const APP_VERSION = "v52";
+const APP_VERSION = "v53";
 const STORE_KEY = "hustlerDB_v1";
 const IT_DAYS = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
 const IT_DAYS_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
@@ -690,7 +690,7 @@ const DEFAULT_PIANO_FISSO = {
   "spuntino-am": [
   ],
   "spuntino-pm": [
-    {id:"whey-acqua", l:"Yogurt intero 200 g + 10 g mandorle + creatina", unit:"porzione", kcalU:206, proU:9.5, carbU:11.5, fatU:13.4, defaultQty:1, costoU:0.95},
+    {id:"whey-acqua", l:"Yogurt greco 0% 200 g + 20 g mandorle + creatina", unit:"porzione", kcalU:216, proU:20.8, carbU:9.2, fatU:10, defaultQty:1, costoU:1.40},
     {id:"omega3", l:"Omega 3", unit:"capsula", kcalU:9, proU:0, carbU:0, fatU:1, defaultQty:2, costoU:0.10},
     {id:"whey-latte", l:"Whey (30g) in 200ml latte", unit:"porzione", kcalU:178, proU:24, carbU:18.7, fatU:0.7, defaultQty:1, costoU:0.72},
   ],
@@ -716,11 +716,11 @@ const DEFAULT_DISPENSA = [
   {id:"ceci",      nome:"Ceci lessati",         unita:"porzioni",  unitaS:"porzione",   perConf:2,    conf:"barattolo da 400 g",  consumo:0.7, orizzonte:30},
   {id:"fagiolini", nome:"Fagiolini lessati",    unita:"porzioni",  unitaS:"porzione",   perConf:2,    conf:"barattolo da 400 g",  consumo:0.7, orizzonte:30},
   {id:"farro",     nome:"Farro precotto",       unita:"buste",     unitaS:"busta",      perConf:1,    conf:"busta da 125 g",      consumo:0.6, orizzonte:10},
-  {id:"yogurt",    nome:"Yogurt intero",        unita:"g",          perConf:1000, conf:"vaschetta da 1 kg",   consumo:200, orizzonte:10},
+  {id:"yogurt",    nome:"Yogurt greco 0%",      unita:"g",          perConf:1000, conf:"vaschetta da 1 kg",   consumo:200, orizzonte:10},
   {id:"segale",    nome:"Pane di segale",       unita:"g",          perConf:500,  conf:"confezione da 500 g", consumo:50,  orizzonte:10},
   {id:"avena",     nome:"Fiocchi d'avena",      unita:"g",          perConf:500,  conf:"busta da 500 g",      consumo:160, orizzonte:30},
   {id:"latte",     nome:"Latte senza lattosio", unita:"ml",         perConf:1000, conf:"litro",               consumo:320, orizzonte:30},
-  {id:"mandorle",  nome:"Mandorle",             unita:"g",          perConf:300,  conf:"sacchetto da 300 g",  consumo:10,  orizzonte:30},
+  {id:"mandorle",  nome:"Mandorle",             unita:"g",          perConf:300,  conf:"sacchetto da 300 g",  consumo:20,  orizzonte:30},
   /* v40 - i deperibili sono entrati qui. Prima andavano a cadenza fissa di 5 giorni senza
      contatore: reggeva finche' i pasti li sceglieva Simone, non piu' con la rotazione.
      Ora si contano come tutto il resto, con soglia 2 invece di 3. */
@@ -746,7 +746,7 @@ const DISTINTA_FISSO = {
   "avena-colazione": {avena:100, latte:200},
   "avena-sera":      {avena:60,  latte:120},
   "custom-7ndt4alq": {segale:100},
-  "whey-acqua":      {yogurt:200, mandorle:10},
+  "whey-acqua":      {yogurt:200, mandorle:20},
   "banana":          {banane:1},
   "custom-2sc5rbvx": {kiwi:1}
 };
@@ -791,7 +791,7 @@ function sostituisciAlimento(daId, aId){
   render();
 }
 const DISTINTA_FISSO_NOME = [
-  {match:"yogurt", usa:{yogurt:200, mandorle:10}},
+  {match:"yogurt", usa:{yogurt:200, mandorle:20}},
   {match:"mela",   usa:{mela:1}},
   {match:"kiwi",   usa:{kiwi:1}}
 ];
@@ -877,6 +877,7 @@ migrateExdbV3();
 reconcileExdbRir();
 migraDispensa();
 migraViaInsalata();
+migraYogurtGreco();
 migraMela();
 migraProgressioneG4();
 migraViaFresco();
@@ -1209,6 +1210,32 @@ function migraYogurt(){
    l'8/11: 16-17 reps sul pulley, poi 52 kg. */
 /* 9 novembre 2026 — alternative in lista. La voce "mela" entra in dispensa spenta
    (consumo 0): si accende solo se Simone compra mele al posto dei kiwi. */
+/* 13 novembre 2026 — yogurt greco colato vero (Kolios 0%, 8,3 g di proteine per 100 g)
+   al posto dello yogurt bianco intero Vipiteno (3,7). Lo 0% toglie i grassi che servivano,
+   quindi le mandorle raddoppiano da 10 a 20 g per recuperarli.
+
+     Vipiteno 200 g + 10 g mandorle   206 /  9,5 / 11,5 / 13,4
+     Kolios   200 g + 20 g mandorle   216 / 20,8 /  9,2 / 10,0
+
+   Giornata: 2.202 / 147,4 / 243,3 / 67,3 contro un target di 2.200 / 150 / 240 / 70.
+   Tutti e quattro i macro entro tre unita': il profilo migliore finora, e chiude il buco
+   delle proteine aperto dal 3/11.
+   Parte da domani: i giorni gia' registrati hanno i valori congelati in pianoFissoSnap,
+   quindi lo storico non si muove. */
+function migraYogurtGreco(){
+  if(DB.yogurtGreco) return;
+  const v = ((DB.pianoFisso && DB.pianoFisso["spuntino-pm"]) || [])
+    .find(x => x && x.id === "whey-acqua");
+  if(v){
+    v.l = "Yogurt greco 0% 200 g + 20 g mandorle + creatina";
+    v.kcalU = 216; v.proU = 20.8; v.carbU = 9.2; v.fatU = 10;
+    v.costoU = 1.40; v.customized = true;
+  }
+  const m = voceDispensa("mandorle"); if(m && Number(m.consumo) === 10) m.consumo = 20;
+  const y = voceDispensa("yogurt");   if(y && y.nome === "Yogurt intero") y.nome = "Yogurt greco 0%";
+  DB.yogurtGreco = true;
+  saveDB();
+}
 function migraMela(){
   if(!Array.isArray(DB.dispensa)) return;
   if(DB.dispensa.some(v => v && v.id === "mela")) return;
